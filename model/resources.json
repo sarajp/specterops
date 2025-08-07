@@ -4,22 +4,22 @@
             "blue_jay": {
                 "name": "Blue Jay",
                 "move_speed": 4,
-                "abilities": [""]
+                "abilities": ["Frequency Hack"]
             },
             "cobra": {
                 "name": "Cobra",
                 "move_speed": 4,
-                "abilities": [""]
+                "abilities": ["Ambush"]
             },
             "orangutan": {
                 "name": "Orangutan",
                 "move_speed": 4,
-                "abilities": [""]
+                "abilities": ["Toughness"]
             },
             "spider": {
                 "name": "Spider",
                 "move_speed": 4,
-                "abilities": [""]
+                "abilities": ["Evasion"]
             }
         },
         "boards": {
@@ -106,42 +106,104 @@
             "beast": {
                 "name": "Beast",
                 "move_speed": 5,
-                "abilities": ["enhanced senses", "brute strength", "quadripedal move"]
+                "abilities": ["Enhanced Senses", "Brutal Strength", "Quadripedal Move"]
             },
             "gun": {
                 "name": "Gun",
                 "move_speed": 4,
-                "abilities": ["snipe", "quickdraw"]
+                "abilities": ["Sharp Shooting", "Quick Draw", "Sniper Shot"]
             },
             "prophet": {
                 "name": "Prophet",
                 "move_speed": 4,
-                "abilities": ["precog", "postcog", "mindreading"]
+                "abilities": ["Mind-Reading", "Pre-Cognition", "Post-Cognition"]
             },
             "puppet": {
                 "name": "Puppet",
                 "move_speed": 4,
-                "abilities": ["car"]
+                "abilities": ["Control Relay", "Remote Sensor"]
             }
         }, 
         "items": {
             "adrenal_surge": {
                 "name": "Adrenal Surge",
-                "type": "internal",
+                "availability": "All",
+                "reveal": "False",
+                "tap": "True",
+                "charges": 1,
+                "range": 6,
+                "token": "None",
+                "abilities": ["This turn you may move up to 6 spaces."]
+            },
+            "flash_bang": {
+                "name": "Flash Bang",
+                "availability": "All",
+                "reveal": "True",
+                "tap": "False",
+                "charges": 1,
+                "range": 4,
+                "token": "Flash Bang",
+                "abilities": ["All hunters that can see the token lose their vision until the start of their turn. If your agent is visible at the start of their turn, place it on the board."]
+            },
+            "holo_decoy": {
+                "name": "Holo Decoy",
+                "availability": "Blue Jay",
+                "reveal": "False",
+                "tap": "False",
+                "charges": 1,
+                "range": 4,
+                "token": "Last Seen",
+                "abilities": ["Place the last seen token and the Blue Jay figure on the board within 4 spaces of Blue Jay's actual location. Use the movement sheet to secretly mark the round Holo Decoy was used on."]
+            },
+            "power_fists": {
+                "name": "Power Fists",
+                "availability": "Orangutan",
+                "reveal": "True",
+                "tap": "True",
                 "charges": 2,
-                "abilities": ["+2 move this turn"]
+                "range": 2,
+                "token": "Orangutan",
+                "abilities": ["Place the Orangutan figure on the game board at his current location. All hunters within 2 spaces of Orangutan are stunned."]
             },
             "smoke_grenade": {
                 "name": "Smoke Grenade",
-                "type": "external",
-                "charges": 2,
-                "abilities": ["add obstacle"]
+                "availability": "All",
+                "reveal": "True",
+                "tap": "False",
+                "charges": 1,
+                "range": 4,
+                "token": "Smoke Grenade",
+                "abilities": ["Until the end of your next turn, all spaces within 1 space of that token block line of sight but not movement. Agents sharing a space with a hunter are still visible to that hunter."]
             },
             "stealth_field": {
                 "name": "Stealth Field",
-                "type": 4,
+                "availability": "All",
+                "reveal": "False",
+                "tap": "True",
+                "charges": 1,
+                "range": 2,
+                "token": "None",
+                "abilities": ["Until the start of your next turn, your agent is only visible if it is within 2 spaces of a hunter."]
+            },
+            "tangle_line": {
+                "name": "Tangle Line",
+                "availability": "Spider",
+                "reveal": "True",
+                "tap": "True",
                 "charges": 2,
-                "abilities": ["los for all hunters reduced to 2"]
+                "range": 99,
+                "token": "None",
+                "abilities": ["Choose a hunter that has line of sight to Spider and roll the die. If you roll equal or higher than the distance to the chosen hunter, that hunter is stunned."]
+            },
+            "velocity_blade": {
+                "name": "Velocity Blade",
+                "availability": "Cobra",
+                "reveal": "True",
+                "tap": "True",
+                "charges": 2,
+                "range": 0,
+                "token": "None",
+                "abilities": ["You may reveal this card when Cobra is being attacked. Until the start of your next turn, hunters get -3 to their die roll when attacking Cobra."]
             }
         }, 
         "supply_cache_items": {

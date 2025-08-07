@@ -1,14 +1,22 @@
 import json
+import random
 
 class BoardState:
     def __init__(self, board_name):
         self.board_grid = self.build_board()
-        with open('resources.json', 'r') as file:
+        self.name = board_name
+        with open('model/resources.json', 'r') as file:
             data = json.load(file)
-            board = data['resources']['boards'][board_name]
-            self.set_roads(board['roads'])
-            self.set_walls(board['walls'])
-            self.set_supply_caches(board['supply_caches'])
+            if board_name == 'Shadow of Babel':
+                board = data['resources']['boards']['shadow_of_babel']
+            if board_name == 'Broken Covenant':
+                board = data['resources']['boards']['broken_covenant']     
+            self.roads = board['roads']
+            self.walls = board['walls']
+            self.caches = board['supply_caches']
+            self.potential_objectives = board['potential_objectives']
+        self.escapes = ['N1', 'A3', 'W3']
+        self.objectives = self.set_objectives()
 
     def build_board(self):
         char_row = []
@@ -25,6 +33,20 @@ class BoardState:
 
         board_grid = [[char_grid[i][j] + num_grid[i][j] for j in range(23)] for i in range(32)]
         return board_grid
+    
+    def add_escapes(self, escapes):
+        for escape in escapes:
+            self.escapes.append(escape)
+
+        
+    def set_objectives(self):
+        objectives = []
+        for i in range(1, 5):
+            idx = random.randint(0,5)
+            obj = self.potential_objectives[str(i)][idx]
+            objectives.append(obj)
+            #print(f'Objective {str(i)} at {obj}')
+        return objectives
 
 
     def move_player(self, player, tile):
@@ -41,3 +63,6 @@ class BoardState:
 
     def remove_obstacle(self, obstacle):
         pass
+
+    def get_board_name(self):
+        return self.name
