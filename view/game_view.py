@@ -20,10 +20,9 @@ class GameView:
     def __init__(self):
         pass
 
-    def tile_to_coords(self, tile):
+    def tile_to_coords(self, tile, size):
         letter = tile[0]
         num = int(tile[1:])
-        size = 25
         x = ((ord(letter)-64)*size)-6
         y = (num*size)+8
         return (x, y)
@@ -35,10 +34,20 @@ class GameView:
         app.add_static_files('/images', './view/assets')
         if 'game' in app.storage.general.keys():
             board_name = app.storage.general['game'].get_board_state().get_board_name()
+
+            start_x = 195
+            start_y = 150
+            size = 116
+
             if board_name == 'Shadow of Babel':
                 board_src = '/images/board_sob.png'
+                start_x = 14
+                start_y = 16
+                size = 25
             if board_name == 'Broken Covenant':
-                board_src = '/images/board_bc.webp'
+                board_src = '/images/board_bc.jpg'
+            if board_name == 'Arctic Archives':
+                board_src = '/images/board_aa.jpg'
 
             char_row = []
             current_char_code = ord('A')
@@ -56,17 +65,22 @@ class GameView:
 
             with open('model/resources.json', 'r') as file:
                 data = json.load(file)
-                walls = data['resources']['boards']['shadow_of_babel']['walls']
-                potential_objectives = data['resources']['boards']['shadow_of_babel']['potential_objectives']
+                if board_name == 'Shadow of Babel':
+                    walls = data['resources']['boards']['shadow_of_babel']['walls']
+                    potential_objectives = data['resources']['boards']['shadow_of_babel']['potential_objectives']
+                if board_name == 'Broken Covenant':
+                    walls = data['resources']['boards']['broken_covenant']['walls']
+                    potential_objectives = data['resources']['boards']['broken_covenant']['potential_objectives']
+                if board_name == 'Arctic Archives':
+                    walls = data['resources']['boards']['arctic_archives']['walls']
+                    potential_objectives = data['resources']['boards']['arctic_archives']['potential_objectives']
+                
                 all_potential_objectives = []
                 for _, row in potential_objectives.items():
                     for i in row:
                         all_potential_objectives.append(i)
 
             content = ''
-            start_x = 14
-            start_y = 16
-            size = 25
             for i, row in enumerate(board_grid):
                 for j, cell in enumerate(row):
                     if cell not in walls:
@@ -74,8 +88,8 @@ class GameView:
                     if cell in all_potential_objectives:
                         content += f'<circle id="potential_objective_{cell}" cx="{(size*j)+26}" cy="{(size*i)+28}" r="{size/2.5}" fill="none" stroke="blue" pointer-events="all" cursor="pointer" />\n'
 
-            agent_start = self.tile_to_coords('N1')
-            hunter_start = self.tile_to_coords('K23')
+            agent_start = self.tile_to_coords('N1', size)
+            hunter_start = self.tile_to_coords('K23', size)
 
             agent_mini = f'<text id="agent" x="{agent_start[0]}" y="{agent_start[1]}" fill="purple" pointer-events="all" cursor="pointer">A</text>'
             car_mini = f'<text id="car" x="{hunter_start[0]}" y="{hunter_start[1]}" fill="green" pointer-events="all" cursor="pointer">C</text>'

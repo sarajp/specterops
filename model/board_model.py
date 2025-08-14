@@ -10,12 +10,14 @@ class BoardState:
             if board_name == 'Shadow of Babel':
                 board = data['resources']['boards']['shadow_of_babel']
             if board_name == 'Broken Covenant':
-                board = data['resources']['boards']['broken_covenant']     
+                board = data['resources']['boards']['broken_covenant'] 
+            if board_name == 'Arctic Archives':
+                board = data['resources']['boards']['arctic_archives']     
             self.roads = board['roads']
             self.walls = board['walls']
             self.caches = board['supply_caches']
             self.potential_objectives = board['potential_objectives']
-        self.escapes = ['N1', 'A3', 'W3']
+        self.escapes = []
         self.objectives = self.set_objectives()
 
     def build_board(self):

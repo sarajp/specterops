@@ -16,13 +16,24 @@ class GameState:
         self.hunters = []
         for hunter in hunters:
             self.hunters.append(HunterState(hunter))
-        self.board_state.add_escapes(['A3', 'M1', 'W1'])
+
+        if board == 'Shadow of Babel':
+            self.board_state.add_escapes(['A3', 'N1', 'W3'])
+            self.agent_start = 'N1'
+        else: 
+            self.board_state.add_escapes(['A3', 'M1', 'W1'])
+            self.agent_start = 'M1'
 
         if len(hunters) < 3:
             self.car_start = 'K17'
             self.objective_visible = True
         else:
-            self.car_start = 'K23'
+            if board == 'Shadow of Babel':
+                self.car_start = 'K23'
+            elif board == 'Broken Covenant':
+                self.car_start = 'K24'
+            elif board == 'Arctic Archives':
+                self.car_start = 'K25'
             self.objective_visible = False
             self.board_state.add_escapes(['A6', 'W6'])
             if len(hunters) > 3:

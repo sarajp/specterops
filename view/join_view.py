@@ -52,15 +52,18 @@ def join():
     with ui.card():
         app.add_static_files('/images', './view/assets')
         sob_src = '/images/board_sob.png'
-        bc_src = '/images/board_bc.webp'
+        bc_src = '/images/board_bc.JPG'
+        aa_src = '/images/board_aa.JPG'
         board_thumbnail = ui.image(sob_src)
         def toggle_image(e):
             if e.value == 'Shadow of Babel':
                 board_thumbnail.set_source(sob_src)
             if e.value == 'Broken Covenant':
                 board_thumbnail.set_source(bc_src)
+            if e.value == 'Arctic Archives':
+                board_thumbnail.set_source(aa_src)
 
-        board_toggle = ui.toggle(['Shadow of Babel', 'Broken Covenant'], on_change=toggle_image, value='Shadow of Babel')
+        board_toggle = ui.toggle(['Shadow of Babel', 'Broken Covenant', 'Arctic Archives'], on_change=toggle_image, value='Shadow of Babel')
 
     def start_game():
         if len(app.storage.general['users']) < 3:

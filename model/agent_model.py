@@ -5,6 +5,5 @@ class AgentState(PlayerState):
         super().__init__(player)
         self.health = health
         self.equipment_slots = equipment
-        self.position = 'N1'
 
 
