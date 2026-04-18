@@ -19,21 +19,15 @@ class BoardState:
             self.potential_objectives = board['potential_objectives']
         self.escapes = []
         self.objectives = self.set_objectives()
-
+    
     def build_board(self):
-        char_row = []
-        current_char_code = ord('A')
-        for i in range(0, 23):
-            char_row.append(chr(current_char_code))
-            current_char_code += 1
-        char_grid = [char_row]*32
-
-        num_grid = []
-        for i in range(1, 33):
-            num_row = [str(i)]*23
-            num_grid.append(num_row)
-
-        board_grid = [[char_grid[i][j] + num_grid[i][j] for j in range(23)] for i in range(32)]
+        rows = [chr(ord('A') + i) for i in range(23)]
+        board_grid = []
+        for col in range(1, 33):
+            row_entries = []
+            for row in rows:
+                row_entries.append(row + str(col))
+            board_grid.append(row_entries)
         return board_grid
     
     def add_escapes(self, escapes):
