@@ -1,0 +1,628 @@
+{
+    "resources": {
+        "agents": {
+            "blue_jay": {
+                "name": "Blue Jay",
+                "move_speed": 4,
+                "abilities": [
+                    {
+                        "name": "Frequency Hack",
+                        "description": "Blue Jay may complete mission objectives that are up to 2 spaces away."
+                    }
+                ]
+            },
+            "cobra": {
+                "name": "Cobra",
+                "move_speed": 4,
+                "abilities": [
+                    {
+                        "name": "Ambush",
+                        "description": "When a hunter ends its move on Cobra, stun that hunter; it cannot attack. When a hunter ends its move orthogonally adjacent to Cobra, you may roll a die. On a result of 4+, stun that hunter; it cannot attack."
+                    }
+                ]
+            },
+            "fox": {
+                "name": "Fox",
+                "move_speed": 5,
+                "abilities": [
+                    {
+                        "name": "Dash",
+                        "description": "Fox may move up to 5 spaces on her turn. When you use Dash, Fox becomes fatigued."
+                    }
+                ]
+            },
+            "mantis": {
+                "name": "Mantis",
+                "move_speed": 4,
+                "abilities": [
+                    {
+                        "name": "Blade Strike",
+                        "description": "When you place a last seen marker adjacent to a hunter, roll a die. On a result of 3+, Mantis stuns that hunter. Mantis may only stun 1 hunter each turn in this way."
+                    }
+                ]
+            },
+            "orangutan": {
+                "name": "Orangutan",
+                "move_speed": 4,
+                "abilities": [
+                    {
+                        "name": "Toughness",
+                        "description": "Orangutan starts the game with 2 additional HP."
+                    }
+                ]
+            },
+            "panther": {
+                "name": "Panther",
+                "move_speed": 4,
+                "abilities": [
+                    {
+                        "name": "Shadow Step",
+                        "description": "When placing your last seen marker, if the Panther moved 3 or fewer spaces, you may place it in a space adjacent to where it would normally be placed."
+                    }
+                ]
+            },
+            "raven": {
+                "name": "Raven",
+                "move_speed": 4,
+                "abilities": [
+                    {
+                        "name": "Omen",
+                        "description": "At the start of your turn, you may choose 1 of the hunters' abilities. The chosen ability is disabled until the start of your next turn. When you use Omen, Raven becomes fatigued."
+                    }
+                ]
+            },
+            "spider": {
+                "name": "Spider",
+                "move_speed": 4,
+                "abilities": [
+                    {
+                        "name": "Evasion",
+                        "description": "Hunters get -2 to their attack rolls when they are within 3 spaces of Spider."
+                    }
+                ]
+            },
+            "traitor_beast": {
+                "name": "Traitor Beast",
+                "move_speed": 5,
+                "abilities": [
+                    {
+                        "name": "Brutal Assault",
+                        "description": "Traitor Beast may land on a hunter's space (but can't move through it). When he does, stun all hunters in that space. When you use Brutal Assault, Traitor Beast becomes fatigued."
+                    }
+                ]
+            },
+            "traitor_gun": {
+                "name": "Traitor Gun",
+                "move_speed": 4,
+                "abilities": [
+                    {
+                        "name": "Quick Draw",
+                        "description": "The first time the Traitor Gun is seen by a hunter each turn, she gets to attack that hunter with Quick Draw. On a hit result, stun that hunter."
+                    }
+                ]
+            },
+            "traitor_heat": {
+                "name": "Traitor Heat",
+                "move_speed": 4,
+                "abilities": [
+                    {
+                        "name": "Pulse Cannon",
+                        "description": "At the start of your turn, if you share a row or column with a hunter, you may reveal your location to attack that hunter with your Pulse Cannon. On a hit result, stun that hunter."
+                    }
+                ]
+            },
+            "traitor_judge": {
+                "name": "Traitor Judge",
+                "move_speed": 4,
+                "abilities": [
+                    {
+                        "name": "Verdict",
+                        "description": "Once per round, when a player rolls a die for a hunter that is within 4 spaces of Traitor Judge, you may have that player reroll that die. The second roll result must be kept."
+                    }
+                ]
+            },
+            "traitor_prophet": {
+                "name": "Traitor Prophet",
+                "move_speed": 4,
+                "abilities": [
+                    {
+                        "name": "Mind Delve",
+                        "description": "At the start of your turn, choose a hunter within 3 spaces of Traitor Prophet and choose a direction (N, S, E, or W). The chosen hunter has no vision in the chosen direction."
+                    }
+                ]
+            },
+            "traitor_puppet": {
+                "name": "Traitor Puppet",
+                "move_speed": 4,
+                "abilities": [
+                    {
+                        "name": "Control Override",
+                        "description": "At the start of the turn, if the vehicle is within 4 spaces of Traitor Puppet, you may move the vehicle up to 4 spaces."
+                    }
+                ]
+            },
+            "traitor_tracker": {
+                "name": "Traitor Tracker",
+                "move_speed": 4,
+                "abilities": [
+                    {
+                        "name": "Loyal to the End",
+                        "description": "Rover moves as an agent. Rover has 2 HP. If an agent loses HP and is adjacent to Rover, Rover loses the HP instead."
+                    }
+                ]
+            },
+            "traitor_watcher": {
+                "name": "Traitor Watcher",
+                "move_speed": 4,
+                "abilities": [
+                    {
+                        "name": "Booby Traps",
+                        "description": "You can no longer place camera tokens. At the start of your turn, you can detonate a camera already in play. Treat the camera token as though a Flash Bang was placed there. (See the Flash Bang equipment card.)"
+                    }
+                ]
+            }
+        },
+        "boards": {
+            "shadow_of_babel": {
+                "name": "shadow_of_babel",
+                "potential_objectives": {
+                            "1": ["B19", "C17", "D19", "C14", "F11", "H12"],
+                            "2": ["B30", "C28", "E27", "G27", "G29", "I30"],
+                            "3": ["N31", "Q25", "Q29", "R31", "U25", "V30"],
+                            "4": ["P18", "R18", "T18", "V18", "V16", "U14"]
+                        },
+                "roads": [
+                            "N1", "O1", "N2", "O2", "N3", "O3", "N4", "O4", "N5", "O5", "N6", "O6",
+                            "A7", "B7", "C7", "D7", "E7", "F7", "G7", "H7", "I7", "J7", "K7", "L7", "M7", "N7", "O7",
+                            "A8", "B8", "C8", "D8", "E8", "F8", "G8", "H8", "I8", "J8", "K8", "L8", "M8", "N8", "O8",
+                            "N9", "O9", "N10", "O10", "N11", "O11", 
+                            "N12", "O12", "P12", "Q12", "R12", "S12", "T12", "U12", "V12", "W12",
+                            "N13", "O13", "P13", "Q13", "R13", "S13", "T13", "U13", "V13", "W13",
+                            "N14", "O14",
+                            "A15", "B15", "C15", "D15", "E15", "F15", "G15", "H15", "I15", "J15", "K15", "L15", "M15", "N15", "O15",
+                            "A16", "B16", "C16", "D16", "E16", "F16", "G16", "H16", "I16", "J16", "K16", "L16", "M16", "N16", "O16",
+                            "J17", "K17", "J18", "K18", "J19", "K19", "J20", "K20", 
+                            "J21", "K21", "L21", "M21", "N21", "O21", "N21", "O21", "P21", "Q21", "R21", "S21", "T21", "U21", "V21", "W21",
+                            "J22", "K22", "L22", "M22", "N22", "O22", "N22", "O22", "P22", "Q22", "R22", "S22", "T22", "U22", "V22", "W22",
+                            "A23", "B23", "C23", "D23", "E23", "F23", "G23", "H23", "I23", "J23", "K23",
+                            "A24", "B24", "C24", "D24", "E24", "F24", "G24", "H24", "I24", "J24", "K24",
+                            "J25", "K25", "J26", "K26", "J27", "K27", "J28", "K28", "J29", "K29", "J30", "K30", "J31", "K31", "J32", "K32"
+                         ],
+                "walls": [
+                            "C1", "E1", "G1", "I1", "K1", "S1", "T1", "U1", "V1", "W1", "A2", "K2", "M2", "P2", "Q2", "S2", "U2", "V2", 
+                            "C3", "D3", "F3", "H3", "I3", "M3", "P3", "A4", "C4", "I4", "K4", "R4", "T4", "V4", "W4", "E5", "G5", "M5", "P5",  
+                            "B6", "C6", "E6", "G6", "H6", "J6", "L6", "M6", "R6", "S6", "U6", "V6", "P7", "R7", "T8", "U8", "W8",
+                            "A9", "C9", "D9", "F9", "H9", "I9", "K9", "M9", "P9", "R9", "D10", "H10", "T10", "V10",
+                            "B11", "F11", "J11", "K11", "M11", "P11", "Q11", "S11", "T11", "V11", "B12", "D12", "H12", "J12", "K12", "F13", "M13", 
+                            "A14", "C14", "E14", "F14", "G14", "I14", "J14", "L14", "M14", "P14", "Q14", "S14", "U14", "W14", "S15", "P16", "Q16", "S16", "T16", "V16",
+                            "A17", "C17", "E17", "G17", "I17", "L17", "N17", "I18", "L18", "P18", "R18", "T18", "V18", "B19", "D19", "F19", "G19", "N19", 
+                            "G20", "I20", "L20", "N20", "O20", "Q20", "S20", "U20", "W20", "A21", "C21", "E21", "A22", "C22", "E22", "F22", "H22", "I22", 
+                            "L23", "N23", "P23", "R23", "S23", "U23", "V23", "L24", "S24", "B25", "C25", "E25", "F25", "H25", "I25", "N25", "O25", "Q25", "U25", "W25",
+                            "C26", "L26", "O26", "S26", "A27", "E27", "G27", "I27", "L27", "M27", "Q27", "S27", "T27", "V27", "A28", "C28", "I28", "O28", "V28",
+                            "E29", "G29", "L29", "N29", "O29", "Q29", "S29", "T29", "B30", "D30", "E30", "I30", "L30", "V30", 
+                            "G31", "N31", "P31", "R31", "T31", "B32", "C32", "E32", "G32", "I32", "L32", "P32", "T32", "V32"
+                        ],
+                "supply_caches": [],
+                "barriers": []
+            },
+            "broken_covenant": {
+                "name": "broken_covenant",
+                "potential_objectives": {
+                            "1": ["B17", "B19", "B21", "D20", "I20", "K21"],
+                            "2": ["C28", "E28", "I28", "B30", "D30", "I30"],
+                            "3": ["V22", "T25", "U27", "P28", "P30", "T31"],
+                            "4": ["M12", "O13", "V13", "T13", "T17", "V17"]
+                        },
+                "roads": [
+                            "L1", "M1", "L2", "M2", "L3", "M3", "L4", "M4", "L5", "M5", "L6", "M6", "L7", "M7",
+                            "G8", "H8", "I8", "J8", "K8", "L8", "M8", "N8", "O8", "P8", "Q8", "R8", "S8", "T8", "U8", "V8", "W8",
+                            "G9", "H9", "I9", "J9", "K9", "L9", "M9", "N9", "O9", "P9", "Q9", "R9", "S9", "T9", "U9", "V9", "W9",
+                            "A13", "B13", "C13", "D13", "E13", "F13",
+                            "A14", "B14", "C14", "D14", "E14", "F14",
+                            "G10", "H10", "G11", "H11", "G12", "H12", "G13", "H13", "G14", "H14", "G15", "H15", "G16", "H16", "G17", "H17", "G18", "H18", "G19", "H19", "G20", "H20", "G21", "H21", "G22", "H22", "G23", "H23",
+                            "P10", "Q10", "P11", "Q11", "P12", "Q12", "P13", "Q13", "P14", "Q14", "P15", "Q15", "P16", "Q16", "P17", "Q17", "P18", "Q18", "P19", "Q19", "P20", "Q20", "P21", "Q21", "P22", "Q22", "P23", "Q23",
+                            "R20", "S20", "T20", "U20", "V20", "W20",
+                            "R21", "S21", "T21", "U21", "V21", "W21",
+                            "A24", "B24", "C24", "D24", "E24", "F24", "G24", "H24", "I24", "J24", "K24", "L24", "M24", "N24", "O24", "N24", "O24", "P24", "Q24",
+                            "A25", "B25", "C25", "D25", "E25", "F25", "G25", "H25", "I25", "J25", "K25", "L25", "M25", "N25", "O25", "N25", "O25", "P25", "Q25",
+                            "L27", "M27", "L28", "M28", "L29", "M29", "L30", "M30", "L31", "M31", "L32", "M32"
+                         ],
+                "walls": [
+                            "C1", "D1", "E1", "G1", "I1", "P1", "R1", "S1", "U1", "V1", "A2", "K2", "N2", "P2", "V2",
+                            "C3", "D3", "F3", "H3", "I3", "N3", "R3", "T3", "V3", "A4", "I4", "K4", "P4", "A5", "C5", "E5", "G5", "K5", "N5", "P5", "R5", "T5", "U5", "W5", 
+                            "I6", "R6", "A7", "C7", "E7", "F7", "H7", "I7", "K7","N7", "O7", "Q7", "R7", "S7", "U7", "W7", "F8", "B9", "D9",
+                            "B10", "F10", "I10", "J10", "L10", "N10", "O10", "R10", "T10", "V10", "D11", "I11", "O11", "T11", "V11", 
+                            "A12", "C12", "D12", "F12", "K12", "M12", "R12", "I13", "O13", "T13", "V13", "K14", "M14", "R14", 
+                            "A15", "C15", "E15", "F15", "I15", "K15", "M15", "O15", "T15", "U15", "W15", "F16", "R16", "B17", "D17", "F17", "T17", "V17",
+                            "D18", "I18", "K18", "L18", "N18", "O18", "R18", "B19", "F19", "K19", "L19", "N19", "O19", "R19", "S19", "U19", "W19", "D20", "I20",
+                            "B21", "F21", "K21", "M21", "O21", "D22", "I22", "R22", "T22", "V22", "A23", "C23", "D23", "F23", "I23", "J23", "L23", "N23", "O23", "T23",
+                            "R24", "V24", "R25", "T25", "V25", "B26", "D26", "F26", "H26", "J26", "K26", "N26", "P26", "K27", "N27", "R27", "S27", "U27", "W27",
+                            "A28", "C28", "E28", "G28", "I28", "P28", "K29", "N29", "R29", "T29", "V29", "B30", "D30", "F30", "G30", "I30", "P30", "R30",
+                            "K31", "N31", "T31", "V31", "B32", "D32", "E32", "G32", "I32", "P32", "R32"
+                         ],
+                "supply_caches": ["S5", "B11", "K13", "M23", "E30", "R31"],
+                "barriers": []
+            },
+            "arctic_archives": {
+                "name": "arctic_archives",
+                "potential_objectives": {
+                            "1": ["C21", "E20", "E22", "G21", "I20", "I22"],
+                            "2": ["E27", "E29", "C30", "G30", "I32", "K29"],
+                            "3": ["P21", "R24", "U21", "U27", "N29", "R30"],
+                            "4": ["N15", "P12", "R12", "T13", "U15", "W15"]
+                        },
+                "roads": [
+                            "L1", "M1", "L2", "M2", "L3", "M3", "L4", "M4", "L5", "M5", "L6", "M6", "L7", "M7",
+                            "A8", "B8", "C8", "D8", "E8", "F8", "G8", "H8", "I8", "J8", "K8", "L8", "M8", "N8", "O8", "P8", "Q8", "R8", "S8", "T8", "U8", "V8", "W8",
+                            "A9", "B9", "C9", "D9", "E9", "F9", "G9", "H9", "I9", "J9", "K9", "L9", "M9", "N9", "O9", "P9", "Q9", "R9", "S9", "T9", "U9", "V9", "W9",
+                            "A10", "B10", "A11", "B11", "A12", "B12", "A13", "B13", "A14", "B14", "A15",
+                            "L10", "M10", "L11", "M11", "L12", "M12", "L13", "M13", "L14", "M14", "L15",
+                            "A16", "B16", "C16", "D16", "E16", "F16", "G16", "H16", "I16", "J16", "K16", "L16", "M16", "N16", "O16", "P16", "Q16", "R16", "S16", "T16", "U16", "V16", "W16",
+                            "A17", "B17", "C17", "D17", "E17", "F17", "G17", "H17", "I17", "J17", "K17", "L17", "M17", "N17", "O17", "P17", "Q17", "R17", "S17", "T17", "U17", "V17", "W17",
+                            "A18", "B18", "A19", "B19", "A20", "B20", "A21", "B21", "A22", "B22", "A23", "B23", "A24", "B24",
+                            "L18", "M18", "L19", "M19", "L20", "M20", "L21", "M21", "L22", "M22", "L23", "M23", "L24", "M24",
+                            "V18", "W18", "V19", "W19", "V20", "W20", "V21", "W21", "V22", "W22", "V23", "W23", "V24", "W24",
+                            "A25", "B25", "C25", "D25", "E25", "F25", "G25", "H25", "I25", "J25", "K25", "L25", "M25", "N25", "O25", "P25", "Q25", "R25", "S25", "T25", "U25", "V25", "W25",
+                            "A26", "B26", "C26", "D26", "E26", "F26", "G26", "H26", "I26", "J26", "K26", "L26", "M26", "N26", "O26", "P26", "Q26", "R26", "S26", "T26", "U26", "V26", "W26",
+                            "L27", "M27", "L28", "M28", "L29", "M29", "L30", "M30", "L31", "M31", "L32", "M32",
+                            "V27", "W27", "V28", "W28", "V29", "W29", "V30", "W30", "V31", "W31", "V32", "W32"
+                         ],
+                "walls": [
+                            "C1", "D1", "E1", "F1", "I1", "N1", "P1", "R1", "S1", "U1", "V1", "A2", "K2", "P2",  
+                            "C3", "E3", "F3", "H3", "I3", "N3", "R3", "T3", "V3", "A4", "E4", "I4", "K4", "N4", "P4", 
+                            "A5", "C5", "E5", "G5", "K5", "P5", "R5", "T5", "U5", "W5", "I6", "N6", "R6", 
+                            "A7", "C7", "D7", "F7", "H7", "I7", "K7", "N7", "O7", "Q7", "R7", "S7", "U7", "W7",
+                            "C10", "D10", "F10", "H10", "J10", "K10", "N10", "O10", "Q10", "R10", "T10", "V10", "C11", "D11", "F11", "N11", "T11", 
+                            "H12", "I12", "K12", "P12", "R12", "V12", "W12", "C13", "D13", "F13", "H13", "I13", "N13", "T13", "V13", 
+                            "C14", "K14", "P14", "R14", "C15", "E15", "G15", "I15", "K15", "N15", "P15", "R15", "S15", "U15", "W15",
+                            "C18", "D18", "F18", "G18", "H18", "J18", "K18", "N18", "O18", "Q18", "S18", "U18", "C19", "G19", "K19", "N19", "O19", "Q19", "U19", 
+                            "E20", "I20", "K20", "S20", "C21", "G21", "N21", "P21", "R21", "S21", "U21", "E22", "I22", "K22", "N22", "R22", 
+                            "C23", "G23", "K23", "P23", "T23", "U23", "C24", "D24", "F24", "G24", "H24", "J24", "K24", "N24", "P24", "R24", "T24", "U24", 
+                            "B27", "C27", "E27", "G27", "H27", "J27", "K27", "N27", "O27", "Q27", "R27", "S27", "U27", "C28", "G28", "R28", 
+                            "A29", "E29", "I29", "K29", "O29", "N29", "P29", "T29", "U29", "A30", "C30", "G30", "I30", "P30", "R30", 
+                            "E31", "K31", "N31", "T31", "U31", "B32", "D32", "E32", "G32", "I32", "P32", "R32"
+                        ],
+                "supply_caches": ["S5", "A6", "F12", "Q20", "I31", "P31"],
+                "barriers": [["H8", "H9"], ["Q8", "Q9"], ["A13", "B13"], ["G16", "G17"], ["S16", "S17"], 
+                             ["L18", "M18"], ["A19", "B19"], ["V23", "W23"], ["L24", "M24"], 
+                             ["C25", "C26"], ["U25", "U26"], ["L27", "M27"], ["V29", "W29"]]
+            }
+        },
+        "hunters": {
+            "beast": {
+                "name": "Beast",
+                "move_speed": 5,
+                "abilities": [
+                    {
+                        "name": "Enhanced Senses",
+                        "description": "After moving the Beast, if you moved him 3 or fewer spaces, any agents within 4 spaces of the Beast must declare they are 'close'."
+                    },
+                    {
+                        "name": "Brutal Strength",
+                        "description": "When the Beast attacks an agent he shares a space with, roll a die. On a result of 5+, the agent loses 2 HP instead of 1."
+                    },
+                    {
+                        "name": "Quadripedal Move",
+                        "description": "The Beast may move 5 spaces on a turn, but can only attack agents he shares a space with during that turn."
+                    }
+                ]
+            },
+            "gun": {
+                "name": "Gun",
+                "move_speed": 4,
+                "abilities": [
+                    {
+                        "name": "Sharp Shooting",
+                        "description": "Roll 2 dice when attacking with the Gun."
+                    },
+                    {
+                        "name": "Quick Draw",
+                        "description": "During the agent's turn, if the agent is spotted by the Gun, roll 1 die. On a result greater than or equal to the distance from the Gun to the last seen marker, the agent loses 1 HP."
+                    },
+                    {
+                        "name": "Sniper Shot",
+                        "description": "After moving the Gun, if the agent is not visible, you choose a direction (N, S, E, W). Until your next turn, the Gun only has vision in that direction and you roll 2 dice for Quick Draw instead of 1."
+                    }
+                ]
+            },
+            "prophet": {
+                "name": "Prophet",
+                "move_speed": 4,
+                "abilities": [
+                    {
+                        "name": "Mind-Reading",
+                        "description": "The Prophet gets +2 to his die rolls. (A roll of 1 is still a miss.)"
+                    },
+                    {
+                        "name": "Pre-Cognition",
+                        "description": "Players must announce when they are going to complete an objective next round (but not which one)."
+                    },
+                    {
+                        "name": "Post-Cognition",
+                        "description": "You may use Post-Cognition instead of moving the Prophet. The agent player must announce which space their agent was located on 2 turns ago."
+                    }
+                ]
+            },
+            "puppet": {
+                "name": "Puppet",
+                "move_speed": 4,
+                "abilities": [
+                    {
+                        "name": "Control Relay",
+                        "description": "Instead of moving the Puppet on a turn, you may move the vehicle, even if the vehicle is unoccupied."
+                    },
+                    {
+                        "name": "Remote Link",
+                        "description": "Instead of moving the Puppet on a turn, you may use a vehicle's special ability, even if the vehicle is unoccupied."
+                    }
+                ]
+            },
+            "watcher": {
+                "name": "Watcher",
+                "move_speed": 4,
+                "abilities": [
+                    {
+                        "name": "Surveillance",
+                        "description": "The Watcher starts the game with 3 camera tokens. After moving the Watcher, you may place a camera on his location in any orientation. In addition to his normal vision, the Watcher also has vision from the cameras in the direction that each is pointing. When all 3 cameras are on the board, to place a camera, first remove a previously placed camera."
+                    },
+                    {
+                        "name": "Full Speed",
+                        "description": "When the Watcher moves only on the road, he may move up to 5 spaces."
+                    }
+                ]
+            },
+            "heat": {
+                "name": "Heat",
+                "move_speed": 4,
+                "abilities": [
+                    {
+                        "name": "Thermal Vision",
+                        "description": "If the Heat moves 2 or fewer spaces, structures don't obstruct his vision until the end of his turn."
+                    },
+                    {
+                        "name": "Pulse Cannon",
+                        "description": "The Heat ignores structures when attacking."
+                    }
+                ]
+            },
+            "judge": {
+                "name": "Judge",
+                "move_speed": 4,
+                "abilities": [
+                    {
+                        "name": "Clairvoyance",
+                        "description": "Instead of moving, choose a direction (NE, NW, SE, SW). If the agent (or decoy) is located in that direction the agent must announce 'you sense the agent'. (If the agent is directly N, S, E, or W, you will be unable to sense her.)"
+                    },
+                    {
+                        "name": "Judgement",
+                        "description": "When the Judge deals damage to an agent, that agent becomes fatigued."
+                    }
+                ]
+            },
+            "tracker": {
+                "name": "Tracker",
+                "move_speed": 4,
+                "abilities": [
+                    {
+                        "name": "Rover",
+                        "description": "Rover is the Tracker's pet. When the agent crosses Rover's line of sight or is in Rover's line of sight at the end of Rover's turn, the agent player must announce that Rover is barking. If Rover lands on an agent, roll a die. On a result of 4+, the agent loses 1 HP."
+                    },
+                    {
+                        "name": "Catch the Scent",
+                        "description": "You may use Catch the Scent instead of moving the Tracker. The agent player must tell you if the Tracker (or Rover) is closer to the agent, or if they are the same distance."
+                    }
+                ]
+            }
+        },
+        "items": {
+            "adrenal_surge": {
+                "name": "Adrenal Surge",
+                "availability": [],
+                "reveal": "False",
+                "tap": "True",
+                "charges": 1,
+                "range": 6,
+                "token": "None",
+                "abilities": ["Do NOT reveal this card. This turn you may move up to 6 spaces. Rotate this card 90 degrees to show that it has been used."]
+            },
+            "concussion_grenade": {
+                "name": "Concussion Grenade",
+                "availability": [],
+                "reveal": "True",
+                "tap": "False",
+                "charges": 1,
+                "range": 4,
+                "token": "Concussion Grenade",
+                "abilities": ["Reveal this card and place the concussion grenade token within 4 spaces of your agent. Each hunter that is adjacent to the grenade must roll a die. On a result of 4 or lower, that hunter is stunned."]
+            },
+            "emp_grenade": {
+                "name": "EMP Grenade",
+                "availability": [],
+                "reveal": "True",
+                "tap": "False",
+                "charges": 2,
+                "range": 4,
+                "token": "None",
+                "abilities": ["Reveal this card. Choose a vehicle within 4 spaces of your agent. Hunters cannot move the chosen vehicle or use its special ability until the beginning of your next turn."]
+            },
+            "flash_bang": {
+                "name": "Flash Bang",
+                "availability": [],
+                "reveal": "True",
+                "tap": "False",
+                "charges": 1,
+                "range": 4,
+                "token": "Flash Bang",
+                "abilities": ["Reveal this card. Place the flash bang token on the board up to 4 spaces away from your agent's location. All hunters that can see the token lose their vision until the start of their turn. If your agent is visible at the start of their turn, place it on the board."]
+            },
+            "holo_decoy": {
+                "name": "Holo Decoy",
+                "availability": ["Blue Jay"],
+                "reveal": "False",
+                "tap": "False",
+                "charges": 1,
+                "range": 4,
+                "token": "Last Seen",
+                "abilities": ["Do NOT reveal this card. This turn, you do not need to place your last seen marker on the last space you were seen. Place the marker anywhere within 4 spaces of your location. Mark the round this was used on your movement sheet."]
+            },
+            "mind_tap": {
+                "name": "Mind Tap",
+                "availability": [],
+                "reveal": "True",
+                "tap": "False",
+                "charges": 1,
+                "range": 0,
+                "token": "None",
+                "abilities": ["Reveal this card at the start of your turn. Hunters must declare where they will move on their next turns. On the hunters' next turns, they must move where they declared."]
+            },
+            "power_fists": {
+                "name": "Power Fists",
+                "availability": ["Orangutan"],
+                "reveal": "True",
+                "tap": "True",
+                "charges": 2,
+                "range": 2,
+                "token": "Orangutan",
+                "abilities": ["Reveal this card. Place the Orangutan figure on the game board at his current location. All hunters within 2 spaces of Orangutan are stunned."]
+            },
+            "proximity_mine": {
+                "name": "Proximity Mine",
+                "availability": [],
+                "reveal": "False",
+                "tap": "False",
+                "charges": 1,
+                "range": 2,
+                "token": "Mine",
+                "abilities": ["Do NOT reveal this card. Mark 'M' on a space up to 2 spaces away from your location. At the start of your turn, if there are 1 or more hunters within 4 spaces of the marked space, reveal this card and stun those hunters. A miss does not consume a charge."]
+            },
+            "pulse_blades": {
+                "name": "Pulse Blades",
+                "availability": ["Mantis", "Cobra"],
+                "reveal": "True",
+                "tap": "True",
+                "charges": 2,
+                "range": 0,
+                "token": "None",
+                "abilities": ["When you place a last seen marker, you may reveal this card and stun all hunters adjacent to the last seen marker."]
+            },
+            "remote_trigger": {
+                "name": "Remote Trigger",
+                "availability": [],
+                "reveal": "False",
+                "tap": "False",
+                "charges": 1,
+                "range": 0,
+                "token": "None",
+                "abilities": ["Do not reveal this card. When completing an objective, you may reveal the objective has been completed on your following turn instead of this turn."]
+            },
+            "smoke_dagger": {
+                "name": "Smoke Dagger",
+                "availability": [],
+                "reveal": "True",
+                "tap": "True",
+                "charges": 2,
+                "range": 4,
+                "token": "None",
+                "abilities": ["Reveal this card. Choose a hunter within 4 spaces. That hunter loses vision until the end of this turn."]
+            },
+            "smoke_grenade": {
+                "name": "Smoke Grenade",
+                "availability": [],
+                "reveal": "True",
+                "tap": "False",
+                "charges": 1,
+                "range": 4,
+                "token": "Smoke Grenade",
+                "abilities": ["Reveal this card. Place a smoke grenade token up to 4 spaces away from your agent's location. Until the end of your next turn, all spaces within 1 space of that token block line of sight but not movement. Agents sharing a space with a hunter are still visible to that hunter."]
+            },
+            "stealth_field": {
+                "name": "Stealth Field",
+                "availability": [],
+                "reveal": "False",
+                "tap": "True",
+                "charges": 1,
+                "range": 2,
+                "token": "None",
+                "abilities": ["Do NOT reveal this card. Until the start of your next turn, your agent is only visible if it is within 2 spaces of a hunter. Rotate this card 90 degrees to show that it has been used."]
+            },
+            "tangle_line": {
+                "name": "Tangle Line",
+                "availability": ["Spider"],
+                "reveal": "True",
+                "tap": "True",
+                "charges": 2,
+                "range": 99,
+                "token": "None",
+                "abilities": ["Reveal this card. Choose a hunter that has line of sight to Spider and roll 1 die. If you roll equal to or higher than the distance to the chosen hunter, that hunter is stunned. A miss does not consume a charge."]
+            },
+            "velocity_blade": {
+                "name": "Velocity Blade",
+                "availability": ["Cobra"],
+                "reveal": "True",
+                "tap": "True",
+                "charges": 2,
+                "range": 0,
+                "token": "None",
+                "abilities": ["You may reveal this card when Cobra is being attacked. Until the start of your next turn, hunters get -3 to their die roll when attacking Cobra."]
+            }
+        }, 
+        "supply_cache_items": {
+            "flare": {
+                "name": "Flare",
+                "availability": [],
+                "reveal": "True",
+                "tap": "False",
+                "charges": 1,
+                "range": 4,
+                "token": "None",
+                "abilities": ["Reveal this card and choose a hunter within 4 spaces of your agent. Choose a direction (N, S, E, or W). The chosen hunter only has vision in the chosen direction until the beginning of their next turn."]
+            },
+            "med_kit": {
+                "name": "Med Kit",
+                "availability": [],
+                "reveal": "True",
+                "tap": "False",
+                "charges": 1,
+                "range": 0,
+                "token": "None",
+                "abilities": ["Reveal this card at the start of your turn and restore 1 HP. You may only move up to 2 spaces this turn."]
+            },
+            "portable_barrier": {
+                "name": "Portable Barrier",
+                "availability": [],
+                "reveal": "True",
+                "tap": "False",
+                "charges": 1,
+                "range": 3,
+                "token": "Barrier",
+                "abilities": ["Reveal this card and place the barrier token on the board within 3 spaces of your location. The barrier is treated as a structure. When a hunter ends his move adjacent to the barrier, remove the barrier token."]
+            }
+        },
+        "vehicles": {
+            "tracer": {
+                "name": "Tracer",
+                "move_speed": 10,
+                "abilities": [
+                    {
+                        "name": "Motion Sensor",
+                        "description": "If a hunter starts his turn in this vehicle, instead of moving the vehicle, the hunter may use its motion sensor. When using the motion sensor, if the agent moved 3 or more spaces on its last turn, the agent player must announce which direction the agent is relative to the vehicle."
+                    }
+                ]
+            },
+            "interceptor": {
+                "name": "Interceptor",
+                "move_speed": 12,
+                "abilities": [
+                    {
+                        "name": "Optic Alarm",
+                        "description": "When there are no hunters in the vehicle, the optic alarm is automatically activated. If the agent moves into or through LOS of the vehicle, the agent must announce that the vehicle alarm has been triggered."
+                    },
+                    {
+                        "name": "The Puppet",
+                        "description": "If the Puppet is in play, the Puppet has vision as though he's in the vehicle."
+                    }
+                ]
+            }
+        }
+    }
+}
