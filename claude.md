@@ -38,7 +38,7 @@ specterops/
 │   ├── main.py               # FastAPI app, WebSocket endpoints, startup
 │   ├── state.py              # GameState, AgentState, HunterState, VehicleState, BoardData dataclasses
 │   ├── engine.py             # setup_game(), apply_move(), get_legal_moves(), resolve_combat(), check_win(), roll_d6()
-│   ├── game_loop.py          # start_turn(), end_turn(), negotiate_hunter_order(), apply_item(), apply_ability(), tick_persistent_effects()
+│   ├── loop.py               # start_turn(), end_turn(), negotiate_hunter_order(), apply_item(), apply_ability(), tick_persistent_effects()
 │   ├── visibility.py         # compute_hunter_los(), update_agent_visibility(), is_agent_visible_to(), apply_flashbang_effect(), apply_smoke_effect()
 │   ├── board.py              # BoardData dataclass, JSON loader, coordinate helpers, LOS
 │   ├── db.py                 # SQLite connection, log_event(), fetch_game_log()
