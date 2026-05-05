@@ -31,6 +31,7 @@ Assumptions:
   - Hunter order negotiation handled by loop.py.
 """
 
+import json
 import random
 from pathlib import Path
 from typing import Optional
@@ -72,11 +73,6 @@ def roll_d6() -> int:
 # ---------------------------------------------------------------------------
 # Setup
 # ---------------------------------------------------------------------------
-
-_CHARACTER_MOVE_SPEED = {
-    "blue_jay": 4, "cobra": 4, "orangutan": 4, "spider": 4,
-    "beast": 5, "gun": 4, "prophet": 4, "puppet": 4,
-}
 
 _BASE_ESCAPE_POINTS = {
     "Shadow of Babel": ["A3", "N1", "W3"],
@@ -130,6 +126,11 @@ def setup_game(
     if len(hunter_players) != len(hunter_characters):
         raise ValueError("hunter_players and hunter_characters must be same length")
 
+    if resources_path is None:
+        resources_path = Path(__file__).parent / "data" / "resources.json"
+    with open(resources_path) as f:
+        resources = json.load(f)["resources"]
+
     board = load_board(board_name, resources_path)
 
     if player_count <= 3:
@@ -158,13 +159,13 @@ def setup_game(
 
     objectives = _select_objectives(board)
 
-    item_states = [_make_item(key, resources_path) for key in agent_items]
+    item_states = [_make_item(key, resources["items"]) for key in agent_items]
     agent = AgentState(
         character=agent_character,
         position=_AGENT_START[board_name],
         health=agent_hp,
         max_health=agent_hp,
-        move_speed=_CHARACTER_MOVE_SPEED.get(agent_character, 4),
+        move_speed=resources["agents"][agent_character]["move_speed"],
         items=item_states,
     )
 
@@ -174,7 +175,7 @@ def setup_game(
             character=character,
             player_name=player_name,
             position=vehicle_start,
-            move_speed=_CHARACTER_MOVE_SPEED.get(character, 4),
+            move_speed=resources["hunters"][character]["move_speed"],
             in_vehicle=True,
             abilities=[],  # deferred
         ))
@@ -210,13 +211,8 @@ def _select_objectives(board: BoardData) -> list[str]:
     return objectives
 
 
-def _make_item(key: str, resources_path: Optional[Path]) -> ItemState:
-    import json
-    if resources_path is None:
-        resources_path = Path(__file__).parent / "data" / "resources.json"
-    with open(resources_path) as f:
-        data = json.load(f)
-    raw = data["resources"]["items"][key]
+def _make_item(key: str, items_data: dict) -> ItemState:
+    raw = items_data[key]
     return ItemState(key=key, name=raw["name"], charges=int(raw["charges"]))
 
 

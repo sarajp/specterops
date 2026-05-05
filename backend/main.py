@@ -61,7 +61,7 @@ from backend.loop import (
     start_hunter_turn,
     is_agent_visible_to,
 )
-from backend.state import GameState, WinCondition
+from backend.state import GameState, StatusEffect, WinCondition
 from backend.visibility import get_agent_view, get_hunter_view
 
 logger = logging.getLogger(__name__)
@@ -84,10 +84,6 @@ app.add_middleware(
 game: Optional[GameState] = None
 board: Optional[BoardData] = None
 connections: dict[str, WebSocket] = {}  # player_name → WebSocket
-
-# Track per-hunter whether they have submitted a move this turn.
-# Reset by start_hunter_turn dispatch; checked before allowing submit_attack.
-hunter_moved: dict[str, bool] = {}
 
 
 # ---------------------------------------------------------------------------
@@ -134,7 +130,7 @@ def _active_hunter_name() -> Optional[str]:
 # ---------------------------------------------------------------------------
 
 async def handle_setup_game(player_name: str, msg: dict) -> None:
-    global game, board, hunter_moved
+    global game, board
 
     if game is not None:
         await send_error(player_name, "Game already in progress")
@@ -150,7 +146,7 @@ async def handle_setup_game(player_name: str, msg: dict) -> None:
             agent_items=msg.get("agent_items", []),
             resources_path=RESOURCES,
         )
-        hunter_moved = {h.player_name: False for h in game.hunters}
+        # moved_this_turn starts False on each HunterState (reset each turn by start_hunter_turn)
     except (KeyError, ValueError) as e:
         game = None
         board = None
@@ -233,8 +229,7 @@ async def handle_start_hunter_turn(player_name: str) -> None:
         await send_error(player_name, f"It is {active}'s turn, not {player_name}'s")
         return
     try:
-        start_hunter_turn(game)
-        hunter_moved[player_name] = False
+        start_hunter_turn(game)  # resets hunter.moved_this_turn
     except ValueError as e:
         await send_error(player_name, str(e))
         return
@@ -276,9 +271,6 @@ async def handle_submit_hunter_move(player_name: str, msg: dict) -> None:
         # Full hunter movement validation (stun cap, road-only for vehicle) is
         # deferred to when hunter movement rules are more fully specified.
         steps = len(path) - 1
-        effective_speed = 2 if hunter.status_effects else hunter.move_speed
-        # Note: stun caps at 2 spaces; check StatusEffect.STUNNED specifically
-        from backend.state import StatusEffect
         if StatusEffect.STUNNED in hunter.status_effects:
             effective_speed = 2
         else:
@@ -300,7 +292,7 @@ async def handle_submit_hunter_move(player_name: str, msg: dict) -> None:
         # Apply movement
         hunter.position = path[-1]
         hunter.path_this_turn = path
-        hunter_moved[player_name] = True
+        hunter.moved_this_turn = True
 
     except (KeyError, ValueError) as e:
         await send_error(player_name, str(e))
@@ -324,13 +316,12 @@ async def handle_submit_attack(player_name: str) -> None:
     if player_name != active:
         await send_error(player_name, f"It is {active}'s turn, not {player_name}'s")
         return
-    if not hunter_moved.get(player_name, False):
-        await send_error(player_name, "Must submit a move before attacking")
-        return
-
     hunter = next((h for h in game.hunters if h.player_name == player_name), None)
     if hunter is None:
         await send_error(player_name, "Hunter not found")
+        return
+    if not hunter.moved_this_turn:
+        await send_error(player_name, "Must submit a move before attacking")
         return
 
     if not is_agent_visible_to(hunter, game, board):
@@ -363,7 +354,11 @@ async def handle_end_hunter_turn(player_name: str) -> None:
     if player_name != active:
         await send_error(player_name, f"It is {active}'s turn, not {player_name}'s")
         return
-    if not hunter_moved.get(player_name, False):
+    hunter = next((h for h in game.hunters if h.player_name == player_name), None)
+    if hunter is None:
+        await send_error(player_name, "Hunter not found")
+        return
+    if not hunter.moved_this_turn:
         await send_error(player_name, "Must submit a move before ending turn")
         return
     try:

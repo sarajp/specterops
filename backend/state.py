@@ -105,11 +105,13 @@ class HunterState:
 
     move_speed: int     # from resources.json
 
-    # Vehicle occupancy
+    # True while hunter has not yet exited the vehicle onto the board.
+    # Distinct from VehicleState.occupied_by, which names the current driver.
     in_vehicle: bool = False
 
     # Movement tracking this turn
     path_this_turn: list[str] = field(default_factory=list)
+    moved_this_turn: bool = False  # True once submit_hunter_move is accepted
 
     # Status effects (set of StatusEffect)
     status_effects: set[StatusEffect] = field(default_factory=set)
@@ -129,8 +131,9 @@ class VehicleState:
     move_speed: int     # total budget per round
     move_budget_remaining: int  # decremented as hunters spend it
 
-    # Which hunter is currently driving (None if unoccupied)
-    occupied_by: Optional[str] = None  # player_name
+    # player_name of the hunter currently driving, or None.
+    # Distinct from HunterState.in_vehicle, which marks hunters not yet deployed.
+    occupied_by: Optional[str] = None
 
     # Full path driven this round — published to all clients
     # Used by run-over rule: agent checks own position against every cell

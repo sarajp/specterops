@@ -6,10 +6,10 @@
 - Future additions: python agents to sub in for players, data analysis to see how different basic strategies combine against each other (prioritize speed, guard exits, recognize other players' strategies)
 
 ## 2. Next Steps
-- plan intermediate steps such as
-- basic test suite generation
-- FastAPI + WebSocket layer
-- React frontend board display
+- plan intermediate steps:
+  - basic test suite generation
+  - FastAPI + WebSocket layer
+  - React frontend board display
 
 ## 3. Architecture
 Frontend:

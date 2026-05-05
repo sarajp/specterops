@@ -207,6 +207,7 @@ def start_hunter_turn(game: GameState) -> None:
 
     hunter.status_effects.discard(StatusEffect.FLASHBANGED)
     hunter.path_this_turn = []
+    hunter.moved_this_turn = False
 
 
 def end_hunter_turn(game: GameState, board: BoardData) -> WinCondition:
