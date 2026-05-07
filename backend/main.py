@@ -329,7 +329,7 @@ async def handle_start_agent_turn(player_name: str) -> None:
     if not _require_game(player_name):
         await send_error(player_name, "No game in progress")
         return
-    if player_name != game.agent.character:
+    if player_name != agent_player_name:
         await send_error(player_name, "Only the agent can start the agent turn")
         return
     try:
@@ -347,7 +347,7 @@ async def handle_submit_path(player_name: str, msg: dict) -> None:
     if not _require_game(player_name):
         await send_error(player_name, "No game in progress")
         return
-    if player_name != game.agent.character:
+    if player_name != agent_player_name:
         await send_error(player_name, "Only the agent can submit a path")
         return
     try:
@@ -363,7 +363,7 @@ async def handle_end_agent_turn(player_name: str) -> None:
     if not _require_game(player_name):
         await send_error(player_name, "No game in progress")
         return
-    if player_name != game.agent.character:
+    if player_name != agent_player_name:
         await send_error(player_name, "Only the agent can end the agent turn")
         return
     try:
