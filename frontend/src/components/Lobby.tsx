@@ -90,16 +90,21 @@ export default function Lobby({ players, playerName, send }: Props) {
     const isTaken = !!claimer && !isMe;
     const isDisabled = isTaken || (charRole === 'agent' && agentTaken && !isMe);
 
+    // Hunters cannot see which agent character was picked — grey all agent cards
+    const hunterViewingAgent = charRole === 'agent' && !isAgent;
+    const showGreyed = isTaken || (hunterViewingAgent && agentTaken);
+    const showSelected = isMe && !hunterViewingAgent;
+
     return (
       <button
         key={c.key}
-        className={`${styles.charCard} ${isTaken ? styles.taken : ''} ${isMe ? styles.selected : ''}`}
+        className={`${styles.charCard} ${showGreyed ? styles.taken : ''} ${showSelected ? styles.selected : ''}`}
         onClick={() => !isDisabled && join(c.key, charRole)}
         disabled={isDisabled}
-        title={isTaken ? `Taken by ${claimer!.player_name}` : c.name}
+        title={hunterViewingAgent ? (agentTaken ? 'Agent slot taken' : c.name) : (isTaken ? `Taken by ${claimer!.player_name}` : c.name)}
       >
         <img src={imgFn(c.key)} alt={c.name} className={styles.charImg} />
-        {claimer && (
+        {!hunterViewingAgent && claimer && (
           <span className={isMe ? styles.claimerOverlayMe : styles.claimerOverlay}>
             {claimer.player_name}
           </span>
@@ -167,7 +172,9 @@ export default function Lobby({ players, playerName, send }: Props) {
                       <span className={`${styles.playerName} ${isMe ? styles.playerNameMe : ''}`}>
                         {p.player_name}
                       </span>
-                      <span className={styles.charName}>{char?.name ?? p.character}</span>
+                      <span className={styles.charName}>
+                        {p.role === 'agent' && !isAgent ? '—' : (char?.name ?? p.character)}
+                      </span>
                     </div>
                   );
                 })
