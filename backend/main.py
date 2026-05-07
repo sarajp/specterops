@@ -164,6 +164,10 @@ async def handle_join_lobby(player_name: str, msg: dict) -> None:
         await send_error(player_name, "board is required for agent")
         return
 
+    if player_name not in lobby and len(lobby) >= 5:
+        await send_error(player_name, "Game is full (5 players max)")
+        return
+
     for pname, entry in lobby.items():
         if pname == player_name:
             continue

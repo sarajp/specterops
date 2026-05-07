@@ -1,7 +1,16 @@
 import { useState } from 'react';
 import type { LobbyPlayer } from '../types/game';
 import type { OutboundMessage } from '../types/ws';
+import boardSob from '../assets/board_sob.png';
+import boardBc from '../assets/board_bc.jpg';
+import boardAa from '../assets/board_aa.jpg';
 import styles from '../styles/Lobby.module.css';
+
+const BOARD_THUMBS: Record<string, string> = {
+  'Shadow of Babel': boardSob,
+  'Broken Covenant': boardBc,
+  'Arctic Archives': boardAa,
+};
 
 const AGENT_CHARS = [
   { key: 'blue_jay', name: 'Blue Jay', speed: 4 },
@@ -44,13 +53,8 @@ interface Props {
 }
 
 export default function Lobby({ players, playerName, send }: Props) {
-  const [role, setRole] = useState<'agent' | 'hunter'>('hunter');
-  const [character, setCharacter] = useState('');
   const [board, setBoard] = useState('Shadow of Babel');
 
-  const takenChars = new Set(
-    players.filter(p => p.player_name !== playerName).map(p => p.character)
-  );
   const agentTaken = players.some(
     p => p.player_name !== playerName && p.role === 'agent'
   );
@@ -59,23 +63,14 @@ export default function Lobby({ players, playerName, send }: Props) {
   const isAgent = myEntry?.role === 'agent';
   const canStart = isAgent && !!myEntry?.character && players.some(p => p.role === 'hunter');
 
-  const chars = role === 'agent' ? AGENT_CHARS : HUNTER_CHARS;
-  const imgFn = role === 'agent' ? agentImg : hunterImg;
-
-  function join(char: string) {
-    if (role === 'agent' && agentTaken) return;
-    setCharacter(char);
+  function join(char: string, charRole: 'agent' | 'hunter') {
+    if (charRole === 'agent' && agentTaken) return;
     send({
       type: 'join_lobby',
-      role,
+      role: charRole,
       character: char,
-      ...(role === 'agent' ? { board } : {}),
+      ...(charRole === 'agent' ? { board } : {}),
     });
-  }
-
-  function handleRoleChange(r: 'agent' | 'hunter') {
-    setRole(r);
-    setCharacter('');
   }
 
   function handleBoardChange(b: string) {
@@ -85,94 +80,111 @@ export default function Lobby({ players, playerName, send }: Props) {
     }
   }
 
+  function renderCharCard(
+    c: { key: string; name: string; speed: number },
+    charRole: 'agent' | 'hunter',
+    imgFn: (key: string) => string
+  ) {
+    const claimer = players.find(p => p.character === c.key);
+    const isMe = claimer?.player_name === playerName;
+    const isTaken = !!claimer && !isMe;
+    const isDisabled = isTaken || (charRole === 'agent' && agentTaken && !isMe);
+
+    return (
+      <button
+        key={c.key}
+        className={`${styles.charCard} ${isTaken ? styles.taken : ''} ${isMe ? styles.selected : ''}`}
+        onClick={() => !isDisabled && join(c.key, charRole)}
+        disabled={isDisabled}
+        title={isTaken ? `Taken by ${claimer!.player_name}` : c.name}
+      >
+        <img src={imgFn(c.key)} alt={c.name} className={styles.charImg} />
+        {claimer && (
+          <span className={isMe ? styles.claimerOverlayMe : styles.claimerOverlay}>
+            {claimer.player_name}
+          </span>
+        )}
+      </button>
+    );
+  }
+
+  const agentBoard = players.find(p => p.role === 'agent')?.board ?? board;
+
   return (
     <div className={styles.lobby}>
-      <div className={styles.picker}>
-        <h2>Join as</h2>
 
-        <div className={styles.roleToggle}>
-          <button
-            className={role === 'agent' ? styles.active : ''}
-            onClick={() => handleRoleChange('agent')}
-            disabled={agentTaken}
-          >
-            Agent {agentTaken ? '(taken)' : ''}
-          </button>
-          <button
-            className={role === 'hunter' ? styles.active : ''}
-            onClick={() => handleRoleChange('hunter')}
-          >
-            Hunter
-          </button>
-        </div>
+      <div className={styles.main}>
+        <section className={`${styles.section} ${styles.agentSection}`}>
+          <h2>Agent</h2>
+          <div className={styles.charGrid}>
+            {AGENT_CHARS.map(c => renderCharCard(c, 'agent', agentImg))}
+          </div>
+        </section>
 
-        <div className={styles.charGrid}>
-          {chars.map(c => {
-            const taken = takenChars.has(c.key);
-            const selected = myEntry?.character === c.key;
-            return (
+        <section className={`${styles.section} ${styles.hunterSection}`}>
+          <h2>Hunters</h2>
+          <div className={styles.charGrid}>
+            {HUNTER_CHARS.map(c => renderCharCard(c, 'hunter', hunterImg))}
+          </div>
+        </section>
+      </div>
+
+      <div className={styles.sidebar}>
+        <section className={styles.section}>
+          <h2>
+            Board
+          </h2>
+          <div className={styles.boardOptions}>
+            {BOARDS.map(b => (
               <button
-                key={c.key}
-                className={`${styles.charCard} ${taken ? styles.taken : ''} ${selected ? styles.selected : ''}`}
-                onClick={() => !taken && join(c.key)}
-                disabled={taken}
-                title={taken ? 'Already taken' : `Speed: ${c.speed}`}
+                key={b}
+                className={`${styles.boardCard} ${agentBoard === b ? styles.active : ''}`}
+                onClick={() => isAgent && handleBoardChange(b)}
+                disabled={!isAgent}
               >
-                <img src={imgFn(c.key)} alt={c.name} />
-                <span>{c.name}</span>
-                <span className={styles.speed}>Spd {c.speed}</span>
+                <div className={styles.imgWrap}>
+                  <img src={BOARD_THUMBS[b]} alt={b} />
+                </div>
+                <span>{b}</span>
               </button>
-            );
-          })}
-        </div>
-
-        {role === 'agent' && (
-          <div className={styles.boardPicker}>
-            <h3>Board</h3>
-            <div className={styles.boardOptions}>
-              {BOARDS.map(b => (
-                <button
-                  key={b}
-                  className={board === b ? styles.active : ''}
-                  onClick={() => handleBoardChange(b)}
-                >
-                  {b}
-                </button>
-              ))}
-            </div>
+            ))}
           </div>
-        )}
+        </section>
 
-        {isAgent && (
-          <button
-            className={styles.startBtn}
-            disabled={!canStart}
-            onClick={() => send({ type: 'start_game' })}
-          >
-            Start Game
-          </button>
-        )}
+        <section className={styles.section}>
+          <h2>Players <span className={styles.sectionHint}>{players.length} / 5</span></h2>
+          <div className={styles.playerList}>
+            {players.length === 0
+              ? <span className={styles.emptyHint}>No one yet</span>
+              : players.map(p => {
+                  const char = [...AGENT_CHARS, ...HUNTER_CHARS].find(c => c.key === p.character);
+                  const isMe = p.player_name === playerName;
+                  return (
+                    <div key={p.player_name} className={styles.playerEntry}>
+                      <span className={`${styles.roleTag} ${p.role === 'agent' ? styles.agentTag : styles.hunterTag}`}>
+                        {p.role === 'agent' ? 'A' : 'H'}
+                      </span>
+                      <span className={`${styles.playerName} ${isMe ? styles.playerNameMe : ''}`}>
+                        {p.player_name}
+                      </span>
+                      <span className={styles.charName}>{char?.name ?? p.character}</span>
+                    </div>
+                  );
+                })
+            }
+          </div>
+        </section>
       </div>
 
-      <div className={styles.playerList}>
-        <h2>Players ({players.length})</h2>
-        {players.length === 0 && <p className={styles.empty}>Waiting for players…</p>}
-        {players.map(p => (
-          <div key={p.player_name} className={styles.playerRow}>
-            <span className={p.role === 'agent' ? styles.agentLabel : styles.hunterLabel}>
-              {p.role === 'agent' ? 'AGENT' : 'HUNTER'}
-            </span>
-            <span className={styles.pName}>{p.player_name}</span>
-            <span className={styles.pChar}>{p.character}</span>
-            {p.role === 'agent' && p.board && (
-              <span className={styles.pBoard}>· {p.board}</span>
-            )}
-          </div>
-        ))}
-        {!canStart && isAgent && (
-          <p className={styles.hint}>Need at least one hunter to start.</p>
-        )}
-      </div>
+      {isAgent && (
+        <button
+          className={styles.startBtn}
+          disabled={!canStart}
+          onClick={() => send({ type: 'start_game' })}
+        >
+          {canStart ? 'Start Game' : 'Waiting for hunters…'}
+        </button>
+      )}
     </div>
   );
 }
