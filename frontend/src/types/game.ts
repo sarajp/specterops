@@ -68,6 +68,14 @@ export interface VehicleStateView {
   path_this_round: string[];
 }
 
+export interface AvailableItem {
+  key: string;
+  name: string;
+  charges: number;
+  copies: number;
+  ability: string;
+}
+
 export interface AgentGameView {
   role: 'agent';
   board_name: string;
@@ -85,6 +93,8 @@ export interface AgentGameView {
   vehicle: VehicleStateView;
   hunter_order: string[];
   active_hunter_index: number;
+  available_items?: AvailableItem[];
+  max_equipment?: number;
 }
 
 export interface HunterGameView {

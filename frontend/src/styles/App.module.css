@@ -63,3 +63,33 @@
   gap: 1rem;
   min-width: 240px;
 }
+
+.leaveBtn {
+  position: fixed;
+  top: 0.4rem;
+  right: 0.5rem;
+  padding: 0.25rem 0.6rem;
+  background: #3a1010;
+  border: 1px solid #7a2020;
+  border-radius: 4px;
+  color: #cc6666;
+  font-size: 0.75rem;
+  cursor: pointer;
+  z-index: 30;
+}
+
+.leaveBtn:hover { background: #5a1818; border-color: #aa3030; }
+
+.setupBanner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  padding: 0.5rem 1rem;
+  background: #1a1a10;
+  border-bottom: 2px solid #c0a060;
+  color: #c0a060;
+  text-align: center;
+  font-size: 0.9rem;
+  z-index: 20;
+}

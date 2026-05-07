@@ -1,7 +1,8 @@
 import { useState, useCallback, useRef } from 'react';
-import type { LobbyPlayer, GameView } from './types/game';
+import type { LobbyPlayer, GameView, AgentGameView } from './types/game';
 import type { InboundMessage, OutboundMessage } from './types/ws';
 import Lobby from './components/Lobby';
+import SetupView from './components/SetupView';
 import Board from './components/Board';
 import ActionBar from './components/ActionBar';
 import PlayerPanel from './components/PlayerPanel';
@@ -77,6 +78,11 @@ export default function App() {
     setPendingPath([]);
   }
 
+  function leave() {
+    send({ type: 'leave_game' });
+    wsRef.current?.close();
+  }
+
   if (!connected) {
     return (
       <div className={styles.connect}>
@@ -95,6 +101,7 @@ export default function App() {
 
   return (
     <div className={styles.app}>
+      <button className={styles.leaveBtn} onClick={leave}>Leave</button>
       {error && (
         <div className={styles.error} onClick={() => setError(null)}>
           {error}
@@ -107,8 +114,15 @@ export default function App() {
           playerName={playerName}
           send={send}
         />
+      ) : gameView.phase === 'SETUP' && gameView.role === 'agent' ? (
+        <SetupView view={gameView as AgentGameView} send={send} />
       ) : (
         <div className={styles.game}>
+          {gameView.phase === 'SETUP' && (
+            <div className={styles.setupBanner}>
+              Waiting for the agent to select items before the game can begin…
+            </div>
+          )}
           <Board
             view={gameView}
             playerName={playerName}

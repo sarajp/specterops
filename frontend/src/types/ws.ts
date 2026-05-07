@@ -54,6 +54,11 @@ export interface StartGameMsg {
   type: 'start_game';
 }
 
+export interface PickItemsMsg {
+  type: 'pick_items';
+  items: string[];
+}
+
 export interface StartAgentTurnMsg {
   type: 'start_agent_turn';
 }
@@ -89,9 +94,15 @@ export interface EndHunterTurnMsg {
   type: 'end_hunter_turn';
 }
 
+export interface LeaveGameMsg {
+  type: 'leave_game';
+}
+
 export type OutboundMessage =
   | JoinLobbyMsg
   | StartGameMsg
+  | PickItemsMsg
+  | LeaveGameMsg
   | StartAgentTurnMsg
   | SubmitPathMsg
   | EndAgentTurnMsg

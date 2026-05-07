@@ -65,7 +65,7 @@ from backend.loop import (
     start_hunter_turn,
     is_agent_visible_to,
 )
-from backend.state import GameState, StatusEffect, WinCondition
+from backend.state import GameState, ItemState, StatusEffect, TurnPhase, WinCondition
 from backend.visibility import get_agent_view, get_hunter_view
 
 logger = logging.getLogger(__name__)
@@ -90,6 +90,9 @@ board: Optional[BoardData] = None
 connections: dict[str, WebSocket] = {}       # player_name → WebSocket
 lobby: dict[str, dict] = {}                  # player_name → {role, character, board}
 agent_player_name: Optional[str] = None      # connection key of the agent; set on game start
+available_items: list[dict] = []             # item options sent to agent during SETUP phase
+max_equipment: int = 0                       # how many items the agent may pick
+_item_defs: dict = {}                        # raw item data from resources.json
 
 
 # ---------------------------------------------------------------------------
@@ -121,6 +124,9 @@ async def broadcast_state() -> None:
     if game is None or board is None:
         return
     agent_view = get_agent_view(game)
+    if game.phase == TurnPhase.SETUP:
+        agent_view["available_items"] = available_items
+        agent_view["max_equipment"] = max_equipment
     hunter_view = get_hunter_view(game, board)
     for player_name, ws in list(connections.items()):
         try:
@@ -144,6 +150,19 @@ def _active_hunter_name() -> Optional[str]:
 # ---------------------------------------------------------------------------
 # Message handlers
 # ---------------------------------------------------------------------------
+
+async def handle_leave_game(player_name: str) -> None:
+    global game, board, agent_player_name, available_items, max_equipment, _item_defs
+    logger.info("Game reset by %s", player_name)
+    game = None
+    board = None
+    agent_player_name = None
+    available_items = []
+    max_equipment = 0
+    _item_defs = {}
+    lobby.clear()
+    await broadcast_lobby()
+
 
 async def handle_join_lobby(player_name: str, msg: dict) -> None:
     if game is not None:
@@ -188,7 +207,7 @@ async def handle_join_lobby(player_name: str, msg: dict) -> None:
 
 
 async def handle_start_game(player_name: str) -> None:
-    global game, board, agent_player_name
+    global game, board, agent_player_name, available_items, max_equipment, _item_defs
 
     if game is not None:
         await send_error(player_name, "Game already in progress")
@@ -200,8 +219,8 @@ async def handle_start_game(player_name: str) -> None:
         return
 
     hunter_entries = [e for e in lobby.values() if e["role"] == "hunter"]
-    if not hunter_entries:
-        await send_error(player_name, "Need at least one hunter to start")
+    if len(hunter_entries) < 2:
+        await send_error(player_name, "Need at least 2 hunters to start")
         return
 
     try:
@@ -215,6 +234,27 @@ async def handle_start_game(player_name: str) -> None:
             resources_path=RESOURCES,
         )
         agent_player_name = player_name
+        game.phase = TurnPhase.SETUP
+
+        player_count = len(lobby)
+        max_equipment = 5 if player_count == 4 else 3
+
+        with open(RESOURCES) as f:
+            res = json.load(f)["resources"]
+        _item_defs = res["items"]
+        agent_display_name = res["agents"].get(entry["character"], {}).get("name", "")
+
+        available_items = [
+            {
+                "key": key,
+                "name": item["name"],
+                "charges": int(item["charges"]),
+                "copies": int(item.get("copies", 1)),
+                "ability": item["abilities"][0] if item["abilities"] else "",
+            }
+            for key, item in _item_defs.items()
+            if not item.get("availability") or agent_display_name in item["availability"]
+        ]
     except (KeyError, ValueError) as e:
         game = None
         board = None
@@ -222,6 +262,39 @@ async def handle_start_game(player_name: str) -> None:
         await send_error(player_name, f"start_game failed: {e}")
         return
 
+    await broadcast_state()
+
+
+async def handle_pick_items(player_name: str, msg: dict) -> None:
+    if not _require_game(player_name):
+        await send_error(player_name, "No game in progress")
+        return
+    if player_name != agent_player_name:
+        await send_error(player_name, "Only the agent can pick items")
+        return
+    if game.phase != TurnPhase.SETUP:
+        await send_error(player_name, "Not in setup phase")
+        return
+
+    selected = msg.get("items", [])
+    if not isinstance(selected, list):
+        await send_error(player_name, "items must be a list")
+        return
+    if len(selected) > max_equipment:
+        await send_error(player_name, f"Too many items: max is {max_equipment}")
+        return
+
+    valid_keys = {item["key"] for item in available_items}
+    for key in selected:
+        if key not in valid_keys:
+            await send_error(player_name, f"Invalid item: {key!r}")
+            return
+
+    game.agent.items = [
+        ItemState(key=key, name=_item_defs[key]["name"], charges=int(_item_defs[key]["charges"]))
+        for key in selected
+    ]
+    game.phase = TurnPhase.AGENT_TURN
     await broadcast_state()
 
 
@@ -504,10 +577,14 @@ async def _broadcast_combat_result(
 async def dispatch(player_name: str, msg: dict) -> None:
     msg_type = msg.get("type")
 
-    if msg_type == "join_lobby":
+    if msg_type == "leave_game":
+        await handle_leave_game(player_name)
+    elif msg_type == "join_lobby":
         await handle_join_lobby(player_name, msg)
     elif msg_type == "start_game":
         await handle_start_game(player_name)
+    elif msg_type == "pick_items":
+        await handle_pick_items(player_name, msg)
     elif msg_type == "setup_game":
         await handle_setup_game(player_name, msg)
     elif msg_type == "start_agent_turn":

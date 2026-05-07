@@ -417,6 +417,7 @@
         "items": {
             "adrenal_surge": {
                 "name": "Adrenal Surge",
+                "copies": 3,
                 "availability": [],
                 "reveal": "False",
                 "tap": "True",
@@ -427,6 +428,7 @@
             },
             "concussion_grenade": {
                 "name": "Concussion Grenade",
+                "copies": 1,
                 "availability": [],
                 "reveal": "True",
                 "tap": "False",
@@ -437,6 +439,7 @@
             },
             "emp_grenade": {
                 "name": "EMP Grenade",
+                "copies": 1,
                 "availability": [],
                 "reveal": "True",
                 "tap": "False",
@@ -447,6 +450,7 @@
             },
             "flash_bang": {
                 "name": "Flash Bang",
+                "copies": 3,
                 "availability": [],
                 "reveal": "True",
                 "tap": "False",
@@ -457,6 +461,7 @@
             },
             "holo_decoy": {
                 "name": "Holo Decoy",
+                "copies": 1,
                 "availability": ["Blue Jay"],
                 "reveal": "False",
                 "tap": "False",
@@ -467,7 +472,8 @@
             },
             "mind_tap": {
                 "name": "Mind Tap",
-                "availability": [],
+                "copies": 1,
+                "availability": ["Raven"],
                 "reveal": "True",
                 "tap": "False",
                 "charges": 1,
@@ -477,6 +483,7 @@
             },
             "power_fists": {
                 "name": "Power Fists",
+                "copies": 1,
                 "availability": ["Orangutan"],
                 "reveal": "True",
                 "tap": "True",
@@ -487,6 +494,7 @@
             },
             "proximity_mine": {
                 "name": "Proximity Mine",
+                "copies": 1,
                 "availability": [],
                 "reveal": "False",
                 "tap": "False",
@@ -497,6 +505,7 @@
             },
             "pulse_blades": {
                 "name": "Pulse Blades",
+                "copies": 1,
                 "availability": ["Mantis", "Cobra"],
                 "reveal": "True",
                 "tap": "True",
@@ -507,6 +516,7 @@
             },
             "remote_trigger": {
                 "name": "Remote Trigger",
+                "copies": 1,
                 "availability": [],
                 "reveal": "False",
                 "tap": "False",
@@ -517,6 +527,7 @@
             },
             "smoke_dagger": {
                 "name": "Smoke Dagger",
+                "copies": 1,
                 "availability": [],
                 "reveal": "True",
                 "tap": "True",
@@ -527,6 +538,7 @@
             },
             "smoke_grenade": {
                 "name": "Smoke Grenade",
+                "copies": 3,
                 "availability": [],
                 "reveal": "True",
                 "tap": "False",
@@ -537,6 +549,7 @@
             },
             "stealth_field": {
                 "name": "Stealth Field",
+                "copies": 3,
                 "availability": [],
                 "reveal": "False",
                 "tap": "True",
@@ -547,6 +560,7 @@
             },
             "tangle_line": {
                 "name": "Tangle Line",
+                "copies": 1,
                 "availability": ["Spider"],
                 "reveal": "True",
                 "tap": "True",
@@ -557,6 +571,7 @@
             },
             "velocity_blade": {
                 "name": "Velocity Blade",
+                "copies": 1,
                 "availability": ["Cobra"],
                 "reveal": "True",
                 "tap": "True",

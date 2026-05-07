@@ -61,7 +61,8 @@ export default function Lobby({ players, playerName, send }: Props) {
 
   const myEntry = players.find(p => p.player_name === playerName);
   const isAgent = myEntry?.role === 'agent';
-  const canStart = isAgent && !!myEntry?.character && players.some(p => p.role === 'hunter');
+  const hunterCount = players.filter(p => p.role === 'hunter').length;
+  const canStart = isAgent && !!myEntry?.character && hunterCount >= 2;
 
   function join(char: string, charRole: 'agent' | 'hunter') {
     if (charRole === 'agent' && agentTaken) return;
@@ -189,7 +190,7 @@ export default function Lobby({ players, playerName, send }: Props) {
           disabled={!canStart}
           onClick={() => send({ type: 'start_game' })}
         >
-          {canStart ? 'Start Game' : 'Waiting for hunters…'}
+          {canStart ? 'Start Game' : hunterCount < 2 ? `Need ${2 - hunterCount} more hunter${hunterCount === 1 ? '' : 's'}…` : 'Select a character…'}
         </button>
       )}
     </div>
