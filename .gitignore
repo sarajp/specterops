@@ -3,3 +3,5 @@ __pycache__/
 .pytest_cache/
 .nicegui/
 .vscode/
+frontend/node_modules/
+frontend/dist/

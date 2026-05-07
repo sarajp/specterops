@@ -1,0 +1,40 @@
+.panel {
+  background: #2a2a3e;
+  border-radius: 6px;
+  padding: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+}
+
+.row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.label { color: #888; }
+
+.phase { text-transform: capitalize; color: #c0a060; }
+
+.divider { border: none; border-top: 1px solid #3a3a4e; margin: 0.25rem 0; }
+
+.section { display: flex; flex-direction: column; gap: 0.3rem; }
+
+.sectionLabel { font-size: 0.7rem; text-transform: uppercase; color: #666; letter-spacing: 0.05em; }
+
+.hp { letter-spacing: 0.1em; color: #e06060; }
+
+.effects { color: #e0a030; font-size: 0.75rem; }
+
+.hunterRow {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+  font-size: 0.8rem;
+}
+
+.pos { color: #aaa; }
+
+.activeHunter { color: #60c0ff; font-weight: bold; }

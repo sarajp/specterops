@@ -147,6 +147,7 @@ def _hunter_dict(h: HunterState) -> dict:
         "position": h.position,
         "move_speed": h.move_speed,
         "in_vehicle": h.in_vehicle,
+        "moved_this_turn": h.moved_this_turn,
         "path_this_turn": h.path_this_turn,
         "status_effects": [e.name for e in h.status_effects],
     }
