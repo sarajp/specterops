@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef } from 'react';
 import type { LobbyPlayer, GameView, AgentGameView } from './types/game';
+import { buildPath, getMoveSpeed } from './utils/path';
 import type { InboundMessage, OutboundMessage } from './types/ws';
 import Lobby from './components/Lobby';
 import SetupView from './components/SetupView';
@@ -71,21 +72,8 @@ export default function App() {
 
   function handleCellClick(cell: string) {
     if (!gameView) return;
-    setPendingPath(prev => {
-      const lastIdx = prev.lastIndexOf(cell);
-      if (lastIdx !== -1) return prev.slice(0, lastIdx + 1);
-
-      let moveSpeed = Infinity;
-      if (gameView.role === 'agent' && gameView.phase === 'AGENT_TURN') {
-        moveSpeed = gameView.agent.move_speed;
-      } else if (gameView.role === 'hunter' && gameView.phase === 'HUNTER_TURN') {
-        const me = gameView.hunters.find(h => h.player_name === playerName);
-        if (me) moveSpeed = me.move_speed;
-      }
-      if (prev.length >= moveSpeed) return prev;
-
-      return [...prev, cell];
-    });
+    const moveSpeed = getMoveSpeed(gameView, playerName);
+    setPendingPath(prev => buildPath(prev, cell, moveSpeed));
   }
 
   function clearPath() {
