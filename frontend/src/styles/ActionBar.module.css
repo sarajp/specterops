@@ -1,0 +1,62 @@
+.bar {
+  background: #2a2a3e;
+  border-radius: 6px;
+  padding: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.hint {
+  font-size: 0.8rem;
+  color: #888;
+}
+
+.pathInfo {
+  font-size: 0.8rem;
+  color: #c0a060;
+}
+
+.btn {
+  padding: 0.4rem 1rem;
+  background: #4a3060;
+  border: none;
+  border-radius: 4px;
+  color: #e0e0e0;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+.btn:hover { background: #5a4070; }
+
+.btnSecondary {
+  padding: 0.4rem 1rem;
+  background: #3a3a4e;
+  border: none;
+  border-radius: 4px;
+  color: #aaa;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+.btnSecondary:hover { background: #4a4a5e; }
+
+.btnEnd {
+  padding: 0.4rem 1rem;
+  background: #204060;
+  border: none;
+  border-radius: 4px;
+  color: #e0e0e0;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+.btnEnd:hover { background: #305070; }
+
+.btnAttack {
+  padding: 0.4rem 1rem;
+  background: #702020;
+  border: none;
+  border-radius: 4px;
+  color: #e0e0e0;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+.btnAttack:hover { background: #903030; }

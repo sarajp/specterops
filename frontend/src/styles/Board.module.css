@@ -1,0 +1,22 @@
+.boardWrap {
+  overflow: auto;
+  flex: 1;
+}
+
+.container {
+  position: relative;
+  width: 100%;
+}
+
+.boardImg {
+  display: block;
+  width: 100%;
+}
+
+.overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
