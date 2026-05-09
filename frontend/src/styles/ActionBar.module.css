@@ -60,3 +60,39 @@
   font-size: 0.9rem;
 }
 .btnAttack:hover { background: #903030; }
+
+.orderWidget {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.orderItem {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.3rem 0.5rem;
+  background: #1e1e2e;
+  border-radius: 4px;
+  cursor: grab;
+  user-select: none;
+  font-size: 0.85rem;
+}
+.orderItem:active { cursor: grabbing; }
+.locked { cursor: default; opacity: 0.7; }
+
+.dragging { opacity: 0.4; }
+
+.orderNum { color: #666; min-width: 1rem; }
+
+.orderName { flex: 1; color: #ddd; }
+
+.confirmed { color: #60c060; font-size: 0.8rem; }
+
+.mismatch {
+  font-size: 0.8rem;
+  color: #e07050;
+  background: rgba(200, 80, 40, 0.15);
+  border-radius: 4px;
+  padding: 0.3rem 0.5rem;
+}

@@ -60,7 +60,8 @@ from backend.engine import (
 from backend.loop import (
     end_agent_turn,
     end_hunter_turn,
-    set_hunter_order,
+    submit_hunter_order_proposal,
+    retract_hunter_order_proposal,
     start_agent_turn,
     start_hunter_turn,
     is_agent_visible_to,
@@ -389,13 +390,25 @@ async def handle_end_agent_turn(player_name: str) -> None:
         await _broadcast_game_over(result)
 
 
+async def handle_retract_hunter_order(player_name: str) -> None:
+    if not _require_game(player_name):
+        await send_error(player_name, "No game in progress")
+        return
+    try:
+        retract_hunter_order_proposal(game, player_name)
+    except ValueError as e:
+        await send_error(player_name, str(e))
+        return
+    await broadcast_state()
+
+
 async def handle_set_hunter_order(player_name: str, msg: dict) -> None:
     if not _require_game(player_name):
         await send_error(player_name, "No game in progress")
         return
     try:
         order = msg["order"]
-        set_hunter_order(game, order)
+        submit_hunter_order_proposal(game, player_name, order)
     except (KeyError, ValueError) as e:
         await send_error(player_name, str(e))
         return
@@ -606,6 +619,8 @@ async def dispatch(player_name: str, msg: dict) -> None:
         await handle_submit_path(player_name, msg)
     elif msg_type == "end_agent_turn":
         await handle_end_agent_turn(player_name)
+    elif msg_type == "retract_hunter_order":
+        await handle_retract_hunter_order(player_name)
     elif msg_type == "set_hunter_order":
         await handle_set_hunter_order(player_name, msg)
     elif msg_type == "start_hunter_turn":

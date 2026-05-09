@@ -77,6 +77,10 @@ export interface SetHunterOrderMsg {
   order: string[];
 }
 
+export interface RetractHunterOrderMsg {
+  type: 'retract_hunter_order';
+}
+
 export interface StartHunterTurnMsg {
   type: 'start_hunter_turn';
 }
@@ -107,6 +111,7 @@ export type OutboundMessage =
   | SubmitPathMsg
   | EndAgentTurnMsg
   | SetHunterOrderMsg
+  | RetractHunterOrderMsg
   | StartHunterTurnMsg
   | SubmitHunterMoveMsg
   | SubmitAttackMsg

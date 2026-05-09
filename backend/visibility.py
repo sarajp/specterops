@@ -133,6 +133,8 @@ def get_hunter_view(game: GameState, board: BoardData) -> dict:
         "vehicle": _vehicle_dict(game),
         "hunter_order": game.hunter_order,
         "active_hunter_index": game.active_hunter_index,
+        "hunter_order_proposals": game.hunter_order_proposals,
+        "order_mismatch": game.order_mismatch,
     }
 
 

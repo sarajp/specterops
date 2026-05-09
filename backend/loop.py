@@ -125,6 +125,8 @@ def end_agent_turn(game: GameState, board: BoardData) -> WinCondition:
         return result
 
     game.phase = TurnPhase.HUNTER_NEGOTIATE
+    game.hunter_order_proposals = {}
+    game.order_mismatch = False
     return WinCondition.NONE
 
 
@@ -150,6 +152,48 @@ def _evaluate_escape(game: GameState) -> None:
 # ---------------------------------------------------------------------------
 # Hunter turns
 # ---------------------------------------------------------------------------
+
+def submit_hunter_order_proposal(game: GameState, player_name: str, order: list[str]) -> None:
+    """
+    Record one hunter's proposed turn order.
+
+    Advances to HUNTER_TURN (via set_hunter_order) when every hunter has
+    submitted a proposal and all proposals match.
+
+    Raises ValueError if phase is wrong, the player is not a hunter, or the
+    order list is invalid.
+    """
+    if game.phase != TurnPhase.HUNTER_NEGOTIATE:
+        raise ValueError(f"submit_hunter_order_proposal called in wrong phase: {game.phase}")
+
+    known = {h.player_name for h in game.hunters}
+    if player_name not in known:
+        raise ValueError(f"{player_name!r} is not a hunter in this game")
+
+    if len(order) != len(set(order)):
+        raise ValueError("Duplicate player names in order")
+    if set(order) != known:
+        raise ValueError("Order must contain exactly all hunter player names")
+
+    game.order_mismatch = False
+    game.hunter_order_proposals[player_name] = list(order)
+
+    if len(game.hunter_order_proposals) == len(game.hunters):
+        proposals = list(game.hunter_order_proposals.values())
+        if all(p == proposals[0] for p in proposals):
+            set_hunter_order(game, proposals[0])
+            game.hunter_order_proposals = {}
+        else:
+            game.hunter_order_proposals = {}
+            game.order_mismatch = True
+
+
+def retract_hunter_order_proposal(game: GameState, player_name: str) -> None:
+    """Remove a hunter's proposal, allowing them to re-order and re-confirm."""
+    if game.phase != TurnPhase.HUNTER_NEGOTIATE:
+        raise ValueError(f"retract_hunter_order_proposal called in wrong phase: {game.phase}")
+    game.hunter_order_proposals.pop(player_name, None)
+
 
 def set_hunter_order(game: GameState, order: list[str]) -> None:
     """

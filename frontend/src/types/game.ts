@@ -113,6 +113,8 @@ export interface HunterGameView {
   vehicle: VehicleStateView;
   hunter_order: string[];
   active_hunter_index: number;
+  hunter_order_proposals: Record<string, string[]>;
+  order_mismatch: boolean;
 }
 
 export type GameView = AgentGameView | HunterGameView;

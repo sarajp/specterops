@@ -179,6 +179,11 @@ class GameState:
     # Active barriers (Arctic Archives only; mutable during play)
     active_barriers: list[str] = field(default_factory=list)
 
+    # Hunter turn-order negotiation: player_name → proposed order
+    # Cleared once consensus is reached or on each new HUNTER_NEGOTIATE phase
+    hunter_order_proposals: dict = field(default_factory=dict)
+    order_mismatch: bool = False  # True when all proposals came in but disagreed
+
     @property
     def is_over(self) -> bool:
         return self.win_condition != WinCondition.NONE
