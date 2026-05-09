@@ -12,9 +12,12 @@
   - React frontend board display ✓
 - db.py — SQLite event logging (log_event, fetch_game_log)
 - Hunter/agent abilities (deferred stubs in engine)
-- Integration tests via Playwright (see 2a)
+- Integration tests via Playwright (see 2b)
 
-## 2a. Deferred Testing
+## 2a. Deferred UI
+- **Legal-move highlighting** — Board.tsx currently allows clicking any cell; adjacency to path tip is enforced in `buildPath` but passable/impassable and hunter-blocked cells are not filtered. Return to this to compute valid next-step cells server-side (or replicate board passability on the client) and visually distinguish/disable non-legal cells.
+
+## 2b. Deferred Testing
 - **Board.tsx clickability** — `onCellClick` gating by role/phase is worth testing, but SVG elements aren't accessible by role so tests require `container.querySelector` rather than `screen.getBy*`. Return to this once the board interaction stabilises.
 - **Integration tests** — full game flow (lobby → setup → agent turn → hunter turn → win condition) via Playwright once the WebSocket backend is stable.
 

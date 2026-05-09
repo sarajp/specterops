@@ -1,9 +1,21 @@
 import type { GameView } from '../types/game';
 
-export function buildPath(prev: string[], cell: string, moveSpeed: number): string[] {
+const COLS = 'ABCDEFGHIJKLMNOPQRSTUVW';
+
+function chebyshevDistance(a: string, b: string): number {
+  const colA = COLS.indexOf(a[0]);
+  const rowA = parseInt(a.slice(1), 10);
+  const colB = COLS.indexOf(b[0]);
+  const rowB = parseInt(b.slice(1), 10);
+  return Math.max(Math.abs(colA - colB), Math.abs(rowA - rowB));
+}
+
+export function buildPath(prev: string[], cell: string, moveSpeed: number, startCell: string): string[] {
   const lastIdx = prev.lastIndexOf(cell);
   if (lastIdx !== -1) return prev.slice(0, lastIdx + 1);
   if (prev.length >= moveSpeed) return prev;
+  const tip = prev.length > 0 ? prev[prev.length - 1] : startCell;
+  if (chebyshevDistance(tip, cell) !== 1) return prev;
   return [...prev, cell];
 }
 
@@ -16,4 +28,10 @@ export function getMoveSpeed(view: GameView, playerName: string): number {
     if (me) return me.move_speed;
   }
   return Infinity;
+}
+
+export function getStartPosition(view: GameView, playerName: string): string | null {
+  if (view.role === 'agent') return view.agent.position;
+  const me = view.hunters.find(h => h.player_name === playerName);
+  return me?.position ?? null;
 }

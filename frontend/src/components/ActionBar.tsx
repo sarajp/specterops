@@ -26,10 +26,13 @@ export default function ActionBar({ view, playerName, pendingPath, send, clearPa
 
   function submitPath() {
     if (pendingPath.length === 0) return;
+    const startPos = view.role === 'agent' ? view.agent.position : myHunter?.position;
+    if (!startPos) return;
+    const fullPath = [startPos, ...pendingPath];
     if (isAgent) {
-      send({ type: 'submit_path', path: pendingPath });
+      send({ type: 'submit_path', path: fullPath });
     } else {
-      send({ type: 'submit_hunter_move', path: pendingPath });
+      send({ type: 'submit_hunter_move', path: fullPath });
     }
     clearPath();
   }

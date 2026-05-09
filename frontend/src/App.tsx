@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef } from 'react';
 import type { LobbyPlayer, GameView, AgentGameView } from './types/game';
-import { buildPath, getMoveSpeed } from './utils/path';
+import { buildPath, getMoveSpeed, getStartPosition } from './utils/path';
 import type { InboundMessage, OutboundMessage } from './types/ws';
 import Lobby from './components/Lobby';
 import SetupView from './components/SetupView';
@@ -73,7 +73,9 @@ export default function App() {
   function handleCellClick(cell: string) {
     if (!gameView) return;
     const moveSpeed = getMoveSpeed(gameView, playerName);
-    setPendingPath(prev => buildPath(prev, cell, moveSpeed));
+    const startCell = getStartPosition(gameView, playerName);
+    if (!startCell) return;
+    setPendingPath(prev => buildPath(prev, cell, moveSpeed, startCell));
   }
 
   function clearPath() {
