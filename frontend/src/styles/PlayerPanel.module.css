@@ -38,3 +38,7 @@
 .pos { color: #aaa; }
 
 .activeHunter { color: #60c0ff; font-weight: bold; }
+
+.character { color: #888; font-size: 0.75rem; }
+
+.muted { color: #555; font-size: 0.8rem; }

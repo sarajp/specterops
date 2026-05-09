@@ -98,6 +98,33 @@ export default function PlayerPanel({ view, playerName }: Props) {
         </>
       )}
 
+      {/* Vehicle */}
+      <hr className={styles.divider} />
+      <div className={styles.section}>
+        <span className={styles.sectionLabel}>Vehicle</span>
+        <div className={styles.row}>
+          <span className={styles.label}>Position</span>
+          <span>{view.vehicle.position}</span>
+        </div>
+        <div className={styles.row}>
+          <span className={styles.label}>Move budget</span>
+          <span>{view.vehicle.move_budget_remaining} / {view.vehicle.move_speed}</span>
+        </div>
+        {view.hunters.filter(h => h.in_vehicle).map(h => (
+          <div key={h.player_name} className={styles.row}>
+            <span>{h.player_name}</span>
+            {h.player_name === view.vehicle.occupied_by && (
+              <span className={styles.character}>driving</span>
+            )}
+          </div>
+        ))}
+        {view.hunters.every(h => !h.in_vehicle) && (
+          <div className={styles.row}>
+            <span className={styles.muted}>empty</span>
+          </div>
+        )}
+      </div>
+
       {/* All hunters */}
       <hr className={styles.divider} />
       <div className={styles.section}>
@@ -105,7 +132,7 @@ export default function PlayerPanel({ view, playerName }: Props) {
         {view.hunters.map(h => (
           <div key={h.player_name} className={styles.hunterRow}>
             <span className={h.player_name === activeHunterName ? styles.activeHunter : ''}>
-              {h.player_name}
+              {h.player_name} <span className={styles.character}>({h.character})</span>
             </span>
             <span className={styles.pos}>{h.position}</span>
             {h.status_effects.length > 0 && (
