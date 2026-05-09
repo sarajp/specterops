@@ -259,26 +259,47 @@ export default function Board({ view, playerName, pendingPath, onCellClick }: Pr
               );
             })}
 
-            {/* Objectives (when visible) */}
-            {view.objectives && view.objectives.map(obj => {
-              const coords = cellCoords(obj, cfg);
-              if (!coords) return null;
-              const cx = coords.x + cfg.cellSize / 2;
-              const cy = coords.y + cfg.cellSize / 2;
-              const completed = view.role === 'agent'
-                ? view.agent.public_objectives.includes(obj) || view.agent.pending_objectives.includes(obj)
-                : view.agent.public_objectives.includes(obj);
-              return (
-                <circle
-                  key={`obj-${obj}`}
-                  cx={cx} cy={cy}
-                  r={cfg.cellSize * 0.28}
-                  fill={completed ? 'rgba(60,200,60,0.4)' : 'none'}
-                  stroke={completed ? '#40c040' : 'rgba(60,160,200,0.6)'}
-                  strokeWidth={0.8}
-                />
-              );
-            })}
+            {/* Objectives:
+                  Agent — always sees all 4 locations with completion state.
+                  Hunters (2–3p, objectives_visible) — see all locations with completion state.
+                  Hunters (4–5p, objectives hidden) — only see publicly completed locations. */}
+            {(view.role === 'agent' || view.objectives_visible)
+              ? view.objectives?.map(obj => {
+                  const coords = cellCoords(obj, cfg);
+                  if (!coords) return null;
+                  const cx = coords.x + cfg.cellSize / 2;
+                  const cy = coords.y + cfg.cellSize / 2;
+                  const completed = view.role === 'agent'
+                    ? view.agent.public_objectives.includes(obj) || view.agent.pending_objectives.includes(obj)
+                    : view.agent.public_objectives.includes(obj);
+                  return (
+                    <circle
+                      key={`obj-${obj}`}
+                      cx={cx} cy={cy}
+                      r={cfg.cellSize * 0.28}
+                      fill={completed ? 'rgba(60,200,60,0.4)' : 'none'}
+                      stroke={completed ? '#40c040' : 'rgba(60,160,200,0.6)'}
+                      strokeWidth={0.8}
+                    />
+                  );
+                })
+              : view.agent.public_objectives.map(obj => {
+                  const coords = cellCoords(obj, cfg);
+                  if (!coords) return null;
+                  const cx = coords.x + cfg.cellSize / 2;
+                  const cy = coords.y + cfg.cellSize / 2;
+                  return (
+                    <circle
+                      key={`obj-${obj}`}
+                      cx={cx} cy={cy}
+                      r={cfg.cellSize * 0.28}
+                      fill="rgba(60,200,60,0.4)"
+                      stroke="#40c040"
+                      strokeWidth={0.8}
+                    />
+                  );
+                })
+            }
           </svg>
         )}
       </div>
