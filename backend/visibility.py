@@ -124,7 +124,7 @@ def get_hunter_view(game: GameState, board: BoardData) -> dict:
         "phase": game.phase.name,
         "win_condition": game.win_condition.name,
         "escape_points": game.escape_points,
-        "objectives": None,
+        "objectives": game.objectives if game.objectives_visible else None,
         "objectives_visible": game.objectives_visible,
         "active_obstacles": game.active_obstacles,
         "active_barriers": game.active_barriers,
