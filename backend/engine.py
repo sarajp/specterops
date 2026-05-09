@@ -177,7 +177,7 @@ def setup_game(
             position=vehicle_start,
             move_speed=resources["hunters"][character]["move_speed"],
             in_vehicle=True,
-            abilities=[],  # deferred
+            abilities=resources["hunters"][character]["abilities"],
         ))
 
     vehicle = VehicleState(

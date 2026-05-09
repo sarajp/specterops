@@ -116,8 +116,7 @@ class HunterState:
     # Status effects (set of StatusEffect)
     status_effects: set[StatusEffect] = field(default_factory=set)
 
-    # Abilities are deferred (claude.md §Deferred); stub list for future use
-    abilities: list[str] = field(default_factory=list)
+    abilities: list[dict] = field(default_factory=list)
 
 
 # ---------------------------------------------------------------------------

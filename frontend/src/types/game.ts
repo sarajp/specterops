@@ -20,6 +20,12 @@ export interface ItemState {
   tapped: boolean;
 }
 
+export interface AbilityState {
+  name: string;
+  description: string;
+  active: boolean;
+}
+
 // Agent's own view of themselves (full detail)
 export interface AgentStateView {
   character: string;
@@ -57,6 +63,7 @@ export interface HunterStateView {
   moved_this_turn: boolean;
   path_this_turn: string[];
   status_effects: StatusEffect[];
+  abilities: AbilityState[];
 }
 
 export interface VehicleStateView {

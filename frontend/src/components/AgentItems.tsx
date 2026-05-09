@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { AgentGameView, ItemState } from '../types/game';
 import ItemCard from './ItemCard';
+import { getItemImage } from '../utils/itemImages';
 import styles from '../styles/AgentItems.module.css';
 
 interface Props {
@@ -28,12 +29,9 @@ export default function AgentItems({ view }: Props) {
       {activeItem && (
         <div className={styles.overlay} onClick={() => setActiveItem(null)}>
           <div className={styles.zoom} onClick={e => e.stopPropagation()}>
-            <ItemCard
-              itemKey={activeItem.key}
-              name={activeItem.name}
-              charges={activeItem.charges}
-              tapped={activeItem.tapped}
-            />
+            <div className={styles.zoomImgOuter}>
+              <img src={getItemImage(activeItem.key)} alt={activeItem.name} className={styles.zoomImg} />
+            </div>
             <div className={styles.zoomActions}>
               <button className={styles.useBtn} disabled>
                 Use Item

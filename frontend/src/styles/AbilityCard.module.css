@@ -1,0 +1,55 @@
+.card {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.4rem;
+  background: none;
+  border: 2px solid transparent;
+  border-radius: 6px;
+  padding: 0;
+  cursor: default;
+  overflow: hidden;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+button.card {
+  cursor: pointer;
+  transition: border-color 0.1s;
+}
+button.card:hover { border-color: #7a50a0; }
+
+/* Same rotation trick as ItemCard — portrait PNG shown as landscape */
+.imgOuter {
+  flex-shrink: 0;
+  width: 60%;
+  aspect-ratio: 22 / 15;
+  overflow: hidden;
+  position: relative;
+  border-radius: 4px;
+}
+
+.img {
+  position: absolute;
+  width: calc(100% * 15 / 22);
+  height: auto;
+  top: calc(-100% * 7 / 30);
+  left: calc(100% * 7 / 44);
+  transform: rotate(-90deg);
+  transform-origin: center;
+}
+
+.fallback {
+  padding: 0.5rem;
+  color: #ccc;
+  font-size: 0.85rem;
+}
+
+.label {
+  flex: 1;
+  font-size: 0.75rem;
+  color: #ccc;
+  line-height: 1.2;
+  text-align: left;
+  padding-right: 0.25rem;
+}

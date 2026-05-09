@@ -295,14 +295,17 @@
                 "abilities": [
                     {
                         "name": "Enhanced Senses",
+                        "active": false,
                         "description": "After moving the Beast, if you moved him 3 or fewer spaces, any agents within 4 spaces of the Beast must declare they are 'close'."
                     },
                     {
                         "name": "Brutal Strength",
+                        "active": false,
                         "description": "When the Beast attacks an agent he shares a space with, roll a die. On a result of 5+, the agent loses 2 HP instead of 1."
                     },
                     {
                         "name": "Quadripedal Move",
+                        "active": false,
                         "description": "The Beast may move 5 spaces on a turn, but can only attack agents he shares a space with during that turn."
                     }
                 ]
@@ -313,14 +316,17 @@
                 "abilities": [
                     {
                         "name": "Sharp Shooting",
+                        "active": false,
                         "description": "Roll 2 dice when attacking with the Gun."
                     },
                     {
                         "name": "Quick Draw",
+                        "active": false,
                         "description": "During the agent's turn, if the agent is spotted by the Gun, roll 1 die. On a result greater than or equal to the distance from the Gun to the last seen marker, the agent loses 1 HP."
                     },
                     {
                         "name": "Sniper Shot",
+                        "active": true,
                         "description": "After moving the Gun, if the agent is not visible, you choose a direction (N, S, E, W). Until your next turn, the Gun only has vision in that direction and you roll 2 dice for Quick Draw instead of 1."
                     }
                 ]
@@ -331,14 +337,17 @@
                 "abilities": [
                     {
                         "name": "Mind-Reading",
+                        "active": false,
                         "description": "The Prophet gets +2 to his die rolls. (A roll of 1 is still a miss.)"
                     },
                     {
                         "name": "Pre-Cognition",
+                        "active": false,
                         "description": "Players must announce when they are going to complete an objective next round (but not which one)."
                     },
                     {
                         "name": "Post-Cognition",
+                        "active": true,
                         "description": "You may use Post-Cognition instead of moving the Prophet. The agent player must announce which space their agent was located on 2 turns ago."
                     }
                 ]
@@ -349,10 +358,12 @@
                 "abilities": [
                     {
                         "name": "Control Relay",
+                        "active": true,
                         "description": "Instead of moving the Puppet on a turn, you may move the vehicle, even if the vehicle is unoccupied."
                     },
                     {
                         "name": "Remote Link",
+                        "active": true,
                         "description": "Instead of moving the Puppet on a turn, you may use a vehicle's special ability, even if the vehicle is unoccupied."
                     }
                 ]
@@ -363,10 +374,12 @@
                 "abilities": [
                     {
                         "name": "Surveillance",
+                        "active": true,
                         "description": "The Watcher starts the game with 3 camera tokens. After moving the Watcher, you may place a camera on his location in any orientation. In addition to his normal vision, the Watcher also has vision from the cameras in the direction that each is pointing. When all 3 cameras are on the board, to place a camera, first remove a previously placed camera."
                     },
                     {
                         "name": "Full Speed",
+                        "active": false,
                         "description": "When the Watcher moves only on the road, he may move up to 5 spaces."
                     }
                 ]
@@ -377,10 +390,12 @@
                 "abilities": [
                     {
                         "name": "Thermal Vision",
+                        "active": false,
                         "description": "If the Heat moves 2 or fewer spaces, structures don't obstruct his vision until the end of his turn."
                     },
                     {
                         "name": "Pulse Cannon",
+                        "active": false,
                         "description": "The Heat ignores structures when attacking."
                     }
                 ]
@@ -391,10 +406,12 @@
                 "abilities": [
                     {
                         "name": "Clairvoyance",
+                        "active": true,
                         "description": "Instead of moving, choose a direction (NE, NW, SE, SW). If the agent (or decoy) is located in that direction the agent must announce 'you sense the agent'. (If the agent is directly N, S, E, or W, you will be unable to sense her.)"
                     },
                     {
                         "name": "Judgement",
+                        "active": false,
                         "description": "When the Judge deals damage to an agent, that agent becomes fatigued."
                     }
                 ]
@@ -405,10 +422,12 @@
                 "abilities": [
                     {
                         "name": "Rover",
+                        "active": false,
                         "description": "Rover is the Tracker's pet. When the agent crosses Rover's line of sight or is in Rover's line of sight at the end of Rover's turn, the agent player must announce that Rover is barking. If Rover lands on an agent, roll a die. On a result of 4+, the agent loses 1 HP."
                     },
                     {
                         "name": "Catch the Scent",
+                        "active": true,
                         "description": "You may use Catch the Scent instead of moving the Tracker. The agent player must tell you if the Tracker (or Rover) is closer to the agent, or if they are the same distance."
                     }
                 ]

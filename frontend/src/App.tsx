@@ -8,6 +8,7 @@ import Board from './components/Board';
 import ActionBar from './components/ActionBar';
 import PlayerPanel from './components/PlayerPanel';
 import AgentItems from './components/AgentItems';
+import HunterAbilities from './components/HunterAbilities';
 import styles from './styles/App.module.css';
 
 export default function App() {
@@ -146,6 +147,11 @@ export default function App() {
             {gameView.role === 'agent' && (
               <div className={styles.itemsFooter}>
                 <AgentItems view={gameView} />
+              </div>
+            )}
+            {gameView.role === 'hunter' && (
+              <div className={styles.itemsFooter}>
+                <HunterAbilities view={gameView} playerName={playerName} />
               </div>
             )}
           </div>
