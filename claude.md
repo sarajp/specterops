@@ -7,9 +7,16 @@
 
 ## 2. Next Steps
 - plan intermediate steps:
-  - basic test suite generation
-  - FastAPI + WebSocket layer
-  - React frontend board display
+  - basic test suite generation ✓
+  - FastAPI + WebSocket layer ✓
+  - React frontend board display ✓
+- db.py — SQLite event logging (log_event, fetch_game_log)
+- Hunter/agent abilities (deferred stubs in engine)
+- Integration tests via Playwright (see 2a)
+
+## 2a. Deferred Testing
+- **Board.tsx clickability** — `onCellClick` gating by role/phase is worth testing, but SVG elements aren't accessible by role so tests require `container.querySelector` rather than `screen.getBy*`. Return to this once the board interaction stabilises.
+- **Integration tests** — full game flow (lobby → setup → agent turn → hunter turn → win condition) via Playwright once the WebSocket backend is stable.
 
 ## 3. Architecture
 Frontend:
@@ -57,9 +64,12 @@ specterops/
 │       │   └── ws.ts         # WS message union types (inbound/outbound)
 │       ├── components/
 │       │   ├── Board.tsx
-│       │   ├── Cell.tsx
+│       │   ├── Lobby.tsx
+│       │   ├── SetupView.tsx
 │       │   ├── PlayerPanel.tsx
 │       │   └── ActionBar.tsx
+│       ├── utils/
+│       │   └── path.ts       # path building, move speed helpers
 │       ├── assets/           # images
 │       └── styles/           # CSS Modules per component
 │

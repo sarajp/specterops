@@ -110,11 +110,24 @@ async def send_error(player_name: str, detail: str) -> None:
 
 
 async def broadcast_lobby() -> None:
-    """Push current lobby player list to every connected client."""
-    msg = json.dumps({"type": "lobby", "players": list(lobby.values())})
-    for ws in list(connections.values()):
+    """Push current lobby player list to every connected client.
+
+    Hunters must not learn which agent character was picked, so their view
+    receives the agent entry with character redacted to an empty string.
+    """
+    players = list(lobby.values())
+    hunter_view = json.dumps({
+        "type": "lobby",
+        "players": [
+            {**p, "character": ""} if p["role"] == "agent" else p
+            for p in players
+        ],
+    })
+    agent_view = json.dumps({"type": "lobby", "players": players})
+    for player_name, ws in list(connections.items()):
+        is_agent = lobby.get(player_name, {}).get("role") == "agent"
         try:
-            await ws.send_text(msg)
+            await ws.send_text(agent_view if is_agent else hunter_view)
         except Exception:
             pass
 
