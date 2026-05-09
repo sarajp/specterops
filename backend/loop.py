@@ -352,10 +352,9 @@ def is_agent_visible_to(
     Note: this checks current state only. Last-seen token placement uses
     the full path scan in compute_last_seen (engine.py).
     """
-    if hunter.in_vehicle:
-        return False
     if StatusEffect.FLASHBANGED in hunter.status_effects:
         return False
 
+    pos = game.vehicle.position if hunter.in_vehicle else hunter.position
     blockers = board.get_blockers(game.active_obstacles)
-    return has_los(hunter.position, game.agent.position, blockers)
+    return has_los(pos, game.agent.position, blockers)

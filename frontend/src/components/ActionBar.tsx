@@ -64,6 +64,36 @@ export default function ActionBar({ view, playerName, pendingPath, send, clearPa
     clearPath();
   }
 
+  function submitVehicleMove() {
+    if (pendingPath.length === 0) return;
+    send({ type: 'submit_vehicle_move', path: [view.vehicle.position, ...pendingPath] });
+    clearPath();
+  }
+
+  function exitVehicleTo(cell: string) {
+    send({ type: 'exit_vehicle', cell });
+    clearPath();
+  }
+
+  function vehicleAdjacentCells(): string[] {
+    const cols = 'ABCDEFGHIJKLMNOPQRSTUVW';
+    const pos = view.vehicle.position;
+    const colIdx = cols.indexOf(pos[0]);
+    const row = parseInt(pos.slice(1), 10);
+    const result: string[] = [];
+    for (let dc = -1; dc <= 1; dc++) {
+      for (let dr = -1; dr <= 1; dr++) {
+        if (dc === 0 && dr === 0) continue;
+        const c = colIdx + dc;
+        const r = row + dr;
+        if (c >= 0 && c <= 22 && r >= 1 && r <= 32) {
+          result.push(cols[c] + r);
+        }
+      }
+    }
+    return result;
+  }
+
   // ── Agent controls ──────────────────────────────────────────
   if (isAgent) {
     if (phase === 'SETUP') {
@@ -99,7 +129,6 @@ export default function ActionBar({ view, playerName, pendingPath, send, clearPa
             <>
               <span className={styles.pathInfo}>{pendingPath.length} steps</span>
               <button className={styles.btn} onClick={submitPath}>Submit Move</button>
-              <button className={styles.btnSecondary} onClick={clearPath}>Clear</button>
             </>
           )}
           <button className={styles.btnEnd} onClick={() => send({ type: 'end_agent_turn' })}>
@@ -181,30 +210,75 @@ export default function ActionBar({ view, playerName, pendingPath, send, clearPa
       );
     }
 
-    return (
-      <div className={styles.bar}>
-        {!myHunter?.moved_this_turn ? (
-          pendingPath.length === 0 ? (
+    // ── In vehicle, not yet moved: can drive or exit ──────────────
+    if (myHunter?.in_vehicle && !myHunter?.moved_this_turn) {
+      return (
+        <div className={styles.bar}>
+          {pendingPath.length === 0 ? (
+            <p className={styles.hint}>Click road cells to drive.</p>
+          ) : (
+            <>
+              <span className={styles.pathInfo}>{pendingPath.length} steps</span>
+              <button className={styles.btn} onClick={submitVehicleMove}>Move Vehicle</button>
+            </>
+          )}
+          <span className={styles.hint}>Exit:</span>
+          {vehicleAdjacentCells().map(cell => (
+            <button key={cell} className={styles.btnSecondary} onClick={() => exitVehicleTo(cell)}>
+              {cell}
+            </button>
+          ))}
+          <button className={styles.btnEnd} onClick={() => send({ type: 'end_hunter_turn' })}>
+            Stay / End Turn
+          </button>
+        </div>
+      );
+    }
+
+    // ── In vehicle, drove this turn: can exit or stay ──────────────
+    if (myHunter?.in_vehicle && myHunter?.moved_this_turn) {
+      return (
+        <div className={styles.bar}>
+          <span className={styles.hint}>Exit:</span>
+          {vehicleAdjacentCells().map(cell => (
+            <button key={cell} className={styles.btnSecondary} onClick={() => exitVehicleTo(cell)}>
+              {cell}
+            </button>
+          ))}
+          <button className={styles.btnEnd} onClick={() => send({ type: 'end_hunter_turn' })}>
+            Stay / End Turn
+          </button>
+        </div>
+      );
+    }
+
+    // ── On board, not yet moved: foot move ──────────────────────────
+    if (!myHunter?.moved_this_turn) {
+      return (
+        <div className={styles.bar}>
+          {pendingPath.length === 0 ? (
             <p className={styles.hint}>Click cells to move, or submit empty to stay.</p>
           ) : (
             <>
               <span className={styles.pathInfo}>{pendingPath.length - 1} steps</span>
               <button className={styles.btn} onClick={submitPath}>Submit Move</button>
-              <button className={styles.btnSecondary} onClick={clearPath}>Clear</button>
             </>
-          )
-        ) : (
-          <>
-            {canAttack && (
-              <button className={styles.btnAttack} onClick={() => send({ type: 'submit_attack' })}>
-                Attack
-              </button>
-            )}
-            <button className={styles.btnEnd} onClick={() => send({ type: 'end_hunter_turn' })}>
-              End Turn
-            </button>
-          </>
+          )}
+        </div>
+      );
+    }
+
+    // ── On board, moved: attack + end ───────────────────────────────
+    return (
+      <div className={styles.bar}>
+        {canAttack && (
+          <button className={styles.btnAttack} onClick={() => send({ type: 'submit_attack' })}>
+            Attack
+          </button>
         )}
+        <button className={styles.btnEnd} onClick={() => send({ type: 'end_hunter_turn' })}>
+          End Turn
+        </button>
       </div>
     );
   }

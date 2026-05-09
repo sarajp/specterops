@@ -376,10 +376,11 @@ def compute_last_seen(game: GameState, board: BoardData) -> Optional[str]:
     agent = game.agent
     blockers = board.get_blockers(game.active_obstacles)
 
-    hunter_positions = [
-        h.position for h in game.hunters
-        if not h.in_vehicle and StatusEffect.FLASHBANGED not in h.status_effects
-    ]
+    hunter_positions = []
+    for h in game.hunters:
+        if StatusEffect.FLASHBANGED in h.status_effects:
+            continue
+        hunter_positions.append(game.vehicle.position if h.in_vehicle else h.position)
 
     if not hunter_positions:
         return None
@@ -469,11 +470,59 @@ def apply_vehicle_move(game: GameState, path: list[str]) -> int:
 
     if path:
         vehicle.position = path[-1]
+        for h in game.hunters:
+            if h.in_vehicle:
+                h.position = path[-1]
 
     steps = len(path) - 1 if len(path) > 1 else 0
     vehicle.move_budget_remaining -= steps
 
     return damage
+
+
+def enter_vehicle(game: GameState, hunter: HunterState) -> None:
+    """
+    Place hunter into the vehicle. Hunter must be on the vehicle's cell and not already in it.
+    Sets in_vehicle=True and ends movement for this turn.
+    """
+    if hunter.in_vehicle:
+        raise ValueError(f"Hunter {hunter.player_name!r} is already in the vehicle")
+    if hunter.position != game.vehicle.position:
+        raise ValueError(
+            f"Hunter {hunter.player_name!r} must be on vehicle cell "
+            f"{game.vehicle.position!r} to enter; currently at {hunter.position!r}"
+        )
+    hunter.in_vehicle = True
+    hunter.moved_this_turn = True
+
+
+def exit_vehicle(
+    game: GameState,
+    board: BoardData,
+    hunter: HunterState,
+    destination: str,
+) -> None:
+    """
+    Remove hunter from vehicle and place on an adjacent, passable cell.
+    Destination must be adjacent to the vehicle's current position and not occupied
+    by another on-board hunter.
+    Sets in_vehicle=False, updates position, ends movement for this turn.
+    """
+    if not hunter.in_vehicle:
+        raise ValueError(f"Hunter {hunter.player_name!r} is not in the vehicle")
+    if not adjacent(game.vehicle.position, destination):
+        raise ValueError(
+            f"Exit destination {destination!r} is not adjacent to vehicle at "
+            f"{game.vehicle.position!r}"
+        )
+    if not board.is_passable(destination):
+        raise ValueError(f"Exit destination {destination!r} is not passable")
+    occupied = {h.position for h in game.hunters if not h.in_vehicle and h is not hunter}
+    if destination in occupied:
+        raise ValueError(f"Exit destination {destination!r} is occupied by another hunter")
+    hunter.in_vehicle = False
+    hunter.position = destination
+    hunter.moved_this_turn = True
 
 
 # ---------------------------------------------------------------------------

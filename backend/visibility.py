@@ -40,11 +40,7 @@ def is_agent_visible_to_any(game: GameState, board: BoardData) -> bool:
     True if at least one on-board, non-flashbanged hunter has LOS to the agent.
     Used to decide whether to include agent position in the hunter view.
     """
-    return any(
-        is_agent_visible_to(h, game, board)
-        for h in game.hunters
-        if not h.in_vehicle
-    )
+    return any(is_agent_visible_to(h, game, board) for h in game.hunters)
 
 
 def get_agent_view(game: GameState) -> dict:

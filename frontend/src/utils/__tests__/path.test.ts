@@ -17,21 +17,20 @@ describe('buildPath', () => {
     expect(buildPath(['A1', 'A2', 'A3', 'A4'], 'A5', 4)).toEqual(['A1', 'A2', 'A3', 'A4']);
   });
 
-  it('backtracks to a middle cell already in the path', () => {
-    expect(buildPath(['A1', 'A2', 'A3', 'A4'], 'A2', 4)).toEqual(['A1', 'A2']);
+  it('clicking a middle cell removes it and everything after', () => {
+    expect(buildPath(['A1', 'A2', 'A3', 'A4'], 'A2', 4)).toEqual(['A1']);
   });
 
-  it('backtracks to the start cell', () => {
-    expect(buildPath(['A1', 'A2', 'A3'], 'A1', 4)).toEqual(['A1']);
+  it('clicking the first cell clears the path', () => {
+    expect(buildPath(['A1', 'A2', 'A3'], 'A1', 4)).toEqual([]);
   });
 
-  it('clicking the current last cell is a no-op', () => {
-    expect(buildPath(['A1', 'A2', 'A3'], 'A3', 4)).toEqual(['A1', 'A2', 'A3']);
+  it('clicking the last cell removes it', () => {
+    expect(buildPath(['A1', 'A2', 'A3'], 'A3', 4)).toEqual(['A1', 'A2']);
   });
 
-  it('uses lastIndexOf when a cell appears twice — snaps to the later occurrence', () => {
-    // path visited A1 twice after a backtrack; clicking A1 again is a no-op
-    expect(buildPath(['A1', 'A2', 'A1'], 'A1', 4)).toEqual(['A1', 'A2', 'A1']);
+  it('uses lastIndexOf when a cell appears twice — removes from the later occurrence', () => {
+    expect(buildPath(['A1', 'A2', 'A1'], 'A1', 4)).toEqual(['A1', 'A2']);
   });
 
   it('always appends when moveSpeed is Infinity (out-of-turn guard is off)', () => {

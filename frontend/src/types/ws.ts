@@ -90,6 +90,16 @@ export interface SubmitHunterMoveMsg {
   path: string[];
 }
 
+export interface SubmitVehicleMoveMsg {
+  type: 'submit_vehicle_move';
+  path: string[];
+}
+
+export interface ExitVehicleMsg {
+  type: 'exit_vehicle';
+  cell: string;
+}
+
 export interface SubmitAttackMsg {
   type: 'submit_attack';
 }
@@ -114,5 +124,7 @@ export type OutboundMessage =
   | RetractHunterOrderMsg
   | StartHunterTurnMsg
   | SubmitHunterMoveMsg
+  | SubmitVehicleMoveMsg
+  | ExitVehicleMsg
   | SubmitAttackMsg
   | EndHunterTurnMsg;

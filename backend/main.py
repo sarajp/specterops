@@ -52,6 +52,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from backend.board import BoardData
 from backend.engine import (
     apply_move,
+    apply_vehicle_move,
+    enter_vehicle,
+    exit_vehicle,
     get_legal_moves,
     resolve_combat,
     setup_game,
@@ -449,27 +452,22 @@ async def handle_submit_hunter_move(player_name: str, msg: dict) -> None:
         await send_error(player_name, "Hunter not found")
         return
 
+    if hunter.in_vehicle:
+        await send_error(player_name, "Cannot submit a foot move while in vehicle — use submit_vehicle_move or exit_vehicle")
+        return
+
     try:
         path = msg["path"]
         if not path:
             raise ValueError("Path must not be empty")
 
-        # Validate start cell
         if path[0] != hunter.position:
             raise ValueError(
                 f"Path must start at hunter position {hunter.position!r}, got {path[0]!r}"
             )
 
-        # Validate each step: passable, within move_speed, no structures
-        # Hunter movement validation is simpler than agent — hunters can share
-        # cells freely and are not blocked by the vehicle or each other for now.
-        # Full hunter movement validation (stun cap, road-only for vehicle) is
-        # deferred to when hunter movement rules are more fully specified.
         steps = len(path) - 1
-        if StatusEffect.STUNNED in hunter.status_effects:
-            effective_speed = 2
-        else:
-            effective_speed = hunter.move_speed
+        effective_speed = 2 if StatusEffect.STUNNED in hunter.status_effects else hunter.move_speed
 
         if steps > effective_speed:
             raise ValueError(
@@ -484,11 +482,91 @@ async def handle_submit_hunter_move(player_name: str, msg: dict) -> None:
                     f"Step {i}: {path[i]!r} is not adjacent to {path[i-1]!r}"
                 )
 
-        # Apply movement
         hunter.position = path[-1]
         hunter.path_this_turn = path
         hunter.moved_this_turn = True
 
+        # Auto-enter vehicle if path ends on the vehicle cell
+        if path[-1] == game.vehicle.position:
+            enter_vehicle(game, hunter)
+
+    except (KeyError, ValueError) as e:
+        await send_error(player_name, str(e))
+        return
+
+    await broadcast_state()
+
+
+async def handle_submit_vehicle_move(player_name: str, msg: dict) -> None:
+    """
+    Active hunter drives the vehicle along a road path.
+    Only valid if the hunter started their turn in the vehicle (in_vehicle=True and not yet moved).
+    """
+    if not _require_game(player_name):
+        await send_error(player_name, "No game in progress")
+        return
+    active = _active_hunter_name()
+    if player_name != active:
+        await send_error(player_name, f"It is {active}'s turn, not {player_name}'s")
+        return
+    hunter = next((h for h in game.hunters if h.player_name == player_name), None)
+    if hunter is None:
+        await send_error(player_name, "Hunter not found")
+        return
+    if not hunter.in_vehicle:
+        await send_error(player_name, "Hunter is not in the vehicle")
+        return
+    if hunter.moved_this_turn:
+        await send_error(player_name, "Already moved this turn")
+        return
+
+    try:
+        path = msg["path"]
+        if len(path) < 2:
+            raise ValueError("Vehicle path must have at least 2 cells (start + 1 step)")
+        if path[0] != game.vehicle.position:
+            raise ValueError(
+                f"Vehicle path must start at vehicle position {game.vehicle.position!r}"
+            )
+        steps = len(path) - 1
+        if steps > game.vehicle.move_budget_remaining:
+            raise ValueError(
+                f"Path has {steps} steps but vehicle budget remaining is "
+                f"{game.vehicle.move_budget_remaining}"
+            )
+        for i in range(1, len(path)):
+            if chebyshev_distance(path[i - 1], path[i]) != 1:
+                raise ValueError(f"Step {i}: {path[i]!r} is not adjacent to {path[i-1]!r}")
+            if path[i] not in board.roads:
+                raise ValueError(f"Step {i}: {path[i]!r} is not a road cell")
+
+        apply_vehicle_move(game, path)
+        hunter.moved_this_turn = True
+
+    except (KeyError, ValueError) as e:
+        await send_error(player_name, str(e))
+        return
+
+    await broadcast_state()
+
+
+async def handle_exit_vehicle(player_name: str, msg: dict) -> None:
+    """Active hunter exits the vehicle to an adjacent cell. Ends movement for this turn."""
+    if not _require_game(player_name):
+        await send_error(player_name, "No game in progress")
+        return
+    active = _active_hunter_name()
+    if player_name != active:
+        await send_error(player_name, f"It is {active}'s turn, not {player_name}'s")
+        return
+    hunter = next((h for h in game.hunters if h.player_name == player_name), None)
+    if hunter is None:
+        await send_error(player_name, "Hunter not found")
+        return
+
+    try:
+        cell = msg["cell"]
+        exit_vehicle(game, board, hunter, cell)
     except (KeyError, ValueError) as e:
         await send_error(player_name, str(e))
         return
@@ -553,7 +631,7 @@ async def handle_end_hunter_turn(player_name: str) -> None:
     if hunter is None:
         await send_error(player_name, "Hunter not found")
         return
-    if not hunter.moved_this_turn:
+    if not hunter.moved_this_turn and not hunter.in_vehicle:
         await send_error(player_name, "Must submit a move before ending turn")
         return
     try:
@@ -627,6 +705,10 @@ async def dispatch(player_name: str, msg: dict) -> None:
         await handle_start_hunter_turn(player_name)
     elif msg_type == "submit_hunter_move":
         await handle_submit_hunter_move(player_name, msg)
+    elif msg_type == "submit_vehicle_move":
+        await handle_submit_vehicle_move(player_name, msg)
+    elif msg_type == "exit_vehicle":
+        await handle_exit_vehicle(player_name, msg)
     elif msg_type == "submit_attack":
         await handle_submit_attack(player_name)
     elif msg_type == "end_hunter_turn":
