@@ -114,6 +114,7 @@ export default function PlayerPanel({ view, playerName }: Props) {
           </div>
         ))}
       </div>
+
     </div>
   );
 }

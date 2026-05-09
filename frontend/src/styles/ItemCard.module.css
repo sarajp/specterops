@@ -1,0 +1,71 @@
+.card {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0;
+  background: none;
+  border: 2px solid transparent;
+  border-radius: 6px;
+  padding: 0;
+  cursor: default;
+  overflow: hidden;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+button.card {
+  cursor: pointer;
+  transition: border-color 0.1s;
+}
+button.card:hover:not(.disabled) { border-color: #7a50a0; }
+
+.selected { border-color: #c0a060; }
+.disabled { opacity: 0.4; cursor: default; }
+.tapped { opacity: 0.45; }
+
+/* Images are 1500×2200 portrait, rotated -90° to landscape (22:15 visual ratio).
+   The outer reserves the correct vertical space; the img is sized so its rendered
+   height equals the container width, making its visual width fill the container. */
+.imgOuter {
+  flex: 1;
+  aspect-ratio: 22 / 15;
+  overflow: hidden;
+  position: relative;
+  border-radius: 4px;
+}
+
+.img {
+  position: absolute;
+  width: calc(100% * 15 / 22);
+  height: auto;
+  top: calc(-100% * 7 / 30);
+  left: calc(100% * 7 / 44);
+  transform: rotate(-90deg);
+  transform-origin: center;
+}
+
+.fallback {
+  padding: 0.5rem;
+  color: #ccc;
+  font-size: 0.85rem;
+}
+
+.charges {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  padding: 0 0.35rem;
+  flex-shrink: 0;
+}
+
+.pip {
+  display: block;
+  width: 6px;
+  height: 20px;
+  background: #c0a060;
+  border-radius: 2px;
+}
+
+.spent { font-size: 0.6rem; color: #555; }

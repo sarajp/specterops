@@ -62,6 +62,14 @@
   flex-direction: column;
   gap: 1rem;
   min-width: 240px;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+}
+
+.itemsFooter {
+  margin-top: auto;
 }
 
 .leaveBtn {

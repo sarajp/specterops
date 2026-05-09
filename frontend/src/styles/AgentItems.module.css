@@ -1,0 +1,60 @@
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.zoom {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  width: 280px;
+}
+
+.zoomActions {
+  display: flex;
+  gap: 0.75rem;
+  width: 100%;
+}
+
+.useBtn {
+  flex: 1;
+  padding: 0.5rem;
+  background: #7a50a0;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.useBtn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.closeBtn {
+  flex: 1;
+  padding: 0.5rem;
+  background: #3a3a52;
+  color: #ccc;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.closeBtn:hover {
+  background: #4a4a62;
+}

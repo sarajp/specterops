@@ -7,6 +7,7 @@ import SetupView from './components/SetupView';
 import Board from './components/Board';
 import ActionBar from './components/ActionBar';
 import PlayerPanel from './components/PlayerPanel';
+import AgentItems from './components/AgentItems';
 import styles from './styles/App.module.css';
 
 export default function App() {
@@ -142,6 +143,11 @@ export default function App() {
               send={send}
               clearPath={clearPath}
             />
+            {gameView.role === 'agent' && (
+              <div className={styles.itemsFooter}>
+                <AgentItems view={gameView} />
+              </div>
+            )}
           </div>
         </div>
       )}

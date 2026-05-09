@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { AgentGameView } from '../types/game';
 import type { OutboundMessage } from '../types/ws';
 import styles from '../styles/SetupView.module.css';
+import ItemCard from './ItemCard';
 
 interface Props {
   view: AgentGameView;
@@ -42,15 +43,15 @@ export default function SetupView({ view, send }: Props) {
           const isSelected = card.copyIndex < countSelected;
           const isDisabled = !isSelected && selected.length >= maxItems;
           return (
-            <button
+            <ItemCard
               key={`${card.key}-${card.copyIndex}`}
-              className={`${styles.itemCard} ${isSelected ? styles.selected : ''} ${isDisabled ? styles.dimmed : ''}`}
+              itemKey={card.key}
+              name={card.name}
+              charges={card.charges}
+              selected={isSelected}
+              disabled={isDisabled}
               onClick={() => toggle(card.key, card.copyIndex)}
-            >
-              <div className={styles.itemName}>{card.name}</div>
-              <div className={styles.itemCharges}>{'●'.repeat(card.charges)}</div>
-              <div className={styles.itemAbility}>{card.ability}</div>
-            </button>
+            />
           );
         })}
       </div>
