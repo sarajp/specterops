@@ -29,6 +29,15 @@ function cellToIndex(cell: string): { col: number; row: number } | null {
   return { col, row };
 }
 
+function tokenLabel(character: string): string {
+  return character.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+}
+
+function tokenFontSize(character: string, cellSize: number): number {
+  const raw = character.replace(/_/g, '');
+  return Math.min(cellSize * 0.38, cellSize * 1.1 / raw.length);
+}
+
 function cellCoords(cell: string, cfg: { startX: number; startY: number; cellSize: number }) {
   const idx = cellToIndex(cell);
   if (!idx) return null;
@@ -144,14 +153,14 @@ export default function Board({ view, playerName, pendingPath, onCellClick }: Pr
                     strokeWidth={0.8}
                   />
                   <text
-                    x={cx} y={cy + 1}
+                    x={cx} y={cy + 0.5}
                     textAnchor="middle"
                     dominantBaseline="middle"
-                    fontSize={cfg.cellSize * 0.4}
+                    fontSize={tokenFontSize(h.character, cfg.cellSize)}
                     fill="white"
                     style={{ pointerEvents: 'none' }}
                   >
-                    H
+                    {tokenLabel(h.character)}
                   </text>
                 </g>
               );
@@ -186,30 +195,25 @@ export default function Board({ view, playerName, pendingPath, onCellClick }: Pr
               );
             })()}
 
-            {/* Agent position (if visible to hunters, or if we are the agent) */}
+            {/* Agent position (agent self-view) */}
             {view.role === 'agent' && (() => {
               const coords = cellCoords(view.agent.position, cfg);
               if (!coords) return null;
               const cx = coords.x + cfg.cellSize / 2;
               const cy = coords.y + cfg.cellSize / 2;
+              const label = tokenLabel(view.agent.character);
               return (
                 <g>
-                  <circle
-                    cx={cx} cy={cy}
-                    r={cfg.cellSize * 0.35}
-                    fill="#8030a0"
-                    stroke="#d080ff"
-                    strokeWidth={0.8}
-                  />
+                  <circle cx={cx} cy={cy} r={cfg.cellSize * 0.35} fill="#c02020" stroke="#ff7070" strokeWidth={0.8} />
                   <text
-                    x={cx} y={cy + 1}
+                    x={cx} y={cy + 0.5}
                     textAnchor="middle"
                     dominantBaseline="middle"
-                    fontSize={cfg.cellSize * 0.4}
+                    fontSize={tokenFontSize(view.agent.character, cfg.cellSize)}
                     fill="white"
                     style={{ pointerEvents: 'none' }}
                   >
-                    A
+                    {label}
                   </text>
                 </g>
               );
@@ -221,43 +225,47 @@ export default function Board({ view, playerName, pendingPath, onCellClick }: Pr
               if (!coords) return null;
               const cx = coords.x + cfg.cellSize / 2;
               const cy = coords.y + cfg.cellSize / 2;
+              const character = view.agent.character;
               return (
                 <g>
-                  <circle cx={cx} cy={cy} r={cfg.cellSize * 0.35} fill="#8030a0" stroke="#d080ff" strokeWidth={0.8} />
-                  <text x={cx} y={cy + 1} textAnchor="middle" dominantBaseline="middle" fontSize={cfg.cellSize * 0.4} fill="white" style={{ pointerEvents: 'none' }}>A</text>
+                  <circle cx={cx} cy={cy} r={cfg.cellSize * 0.35} fill="#c02020" stroke="#ff7070" strokeWidth={0.8} />
+                  <text
+                    x={cx} y={cy + 0.5}
+                    textAnchor="middle"
+                    dominantBaseline="middle"
+                    fontSize={character ? tokenFontSize(character, cfg.cellSize) : cfg.cellSize * 0.4}
+                    fill="white"
+                    style={{ pointerEvents: 'none' }}
+                  >
+                    {character ? tokenLabel(character) : 'A'}
+                  </text>
                 </g>
               );
             })()}
 
-            {/* Last-seen token */}
-            {view.agent.last_seen_cell && (() => {
+            {/* Last-seen token — hidden when agent is currently visible */}
+            {view.agent.last_seen_cell && !view.agent.position && (() => {
               const coords = cellCoords(view.agent.last_seen_cell, cfg);
               if (!coords) return null;
               const cx = coords.x + cfg.cellSize / 2;
               const cy = coords.y + cfg.cellSize / 2;
+              const character = view.agent.character;
               return (
                 <g>
-                  <circle cx={cx} cy={cy} r={cfg.cellSize * 0.3} fill="none" stroke="#c08040" strokeWidth={1} strokeDasharray="2 1" />
-                  <text x={cx} y={cy + 1} textAnchor="middle" dominantBaseline="middle" fontSize={cfg.cellSize * 0.35} fill="#c08040" style={{ pointerEvents: 'none' }}>?</text>
+                  <circle cx={cx} cy={cy} r={cfg.cellSize * 0.3} fill="rgba(192,32,32,0.15)" stroke="#c08040" strokeWidth={1} strokeDasharray="2 1" />
+                  <text
+                    x={cx} y={cy + 0.5}
+                    textAnchor="middle"
+                    dominantBaseline="middle"
+                    fontSize={character ? tokenFontSize(character, cfg.cellSize) : cfg.cellSize * 0.35}
+                    fill="#c08040"
+                    style={{ pointerEvents: 'none' }}
+                  >
+                    {character ? tokenLabel(character) : '?'}
+                  </text>
                 </g>
               );
             })()}
-
-            {/* Escape points */}
-            {view.escape_points.map(ep => {
-              const coords = cellCoords(ep, cfg);
-              if (!coords) return null;
-              return (
-                <rect
-                  key={`ep-${ep}`}
-                  x={coords.x + 1} y={coords.y + 1}
-                  width={cfg.cellSize - 2} height={cfg.cellSize - 2}
-                  fill="none"
-                  stroke="rgba(60,200,60,0.6)"
-                  strokeWidth={1}
-                />
-              );
-            })}
 
             {/* Objectives:
                   Agent — always sees all 4 locations with completion state.

@@ -303,33 +303,53 @@ def end_hunter_turn(game: GameState, board: BoardData) -> WinCondition:
 
     # Advance turn
     if game.active_hunter_index >= len(game.hunter_order) - 1:
-        end_round(game)
+        return end_round(game)
     else:
         game.active_hunter_index += 1
 
     return WinCondition.NONE
 
 
-def end_round(game: GameState) -> None:
+def end_round(game: GameState) -> WinCondition:
     """
-    Close the current round and prepare for the next agent turn.
+    Close the current round and initialise the next agent turn.
 
     Steps:
       - Increment round_number.
+      - check_timeout — hunters win if round_number > 40.
       - Reset vehicle move budget and clear path_this_round.
-      - Reset all hunter path_this_turn lists.
+      - Reset all hunter path_this_turn and moved_this_turn.
+      - publish_pending_objectives — pending → public (start of agent turn).
+      - Clear agent FLASHBANGED effect.
+      - Clear active_obstacles (smoke expires at start of agent turn).
+      - Reset agent.path_this_turn.
       - Advance phase to AGENT_TURN.
 
     Called internally by end_hunter_turn after the last hunter's turn.
+    Returns WinCondition so callers can short-circuit on HUNTERS_TIMEOUT.
     """
     game.round_number += 1
+
+    result = check_timeout(game)
+    if result != WinCondition.NONE:
+        game.phase = TurnPhase.GAME_OVER
+        game.win_condition = result
+        return result
+
     game.vehicle.move_budget_remaining = game.vehicle.move_speed
     game.vehicle.path_this_round = []
 
     for hunter in game.hunters:
         hunter.path_this_turn = []
+        hunter.moved_this_turn = False
+
+    publish_pending_objectives(game)
+    game.agent.status_effects.discard(StatusEffect.FLASHBANGED)
+    game.active_obstacles.clear()
+    game.agent.path_this_turn = []
 
     game.phase = TurnPhase.AGENT_TURN
+    return WinCondition.NONE
 
 
 # ---------------------------------------------------------------------------

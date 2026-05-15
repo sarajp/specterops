@@ -9,6 +9,8 @@ import ActionBar from './components/ActionBar';
 import PlayerPanel from './components/PlayerPanel';
 import AgentItems from './components/AgentItems';
 import HunterAbilities from './components/HunterAbilities';
+import DiceRoll from './components/DiceRoll';
+import type { CombatResultMessage } from './types/ws';
 import styles from './styles/App.module.css';
 
 export default function App() {
@@ -21,6 +23,7 @@ export default function App() {
   const [gameView, setGameView] = useState<GameView | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pendingPath, setPendingPath] = useState<string[]>([]);
+  const [combatResult, setCombatResult] = useState<CombatResultMessage | null>(null);
 
   const send = useCallback((msg: OutboundMessage) => {
     wsRef.current?.send(JSON.stringify(msg));
@@ -58,6 +61,8 @@ export default function App() {
         setError(msg.detail);
       } else if (msg.type === 'game_over') {
         setError(`Game over: ${msg.result}`);
+      } else if (msg.type === 'combat_result') {
+        setCombatResult(msg);
       }
     };
 
@@ -108,6 +113,15 @@ export default function App() {
   return (
     <div className={styles.app}>
       <button className={styles.leaveBtn} onClick={leave}>Leave</button>
+      {combatResult && (
+        <DiceRoll
+          attacker={combatResult.attacker}
+          hit={combatResult.hit}
+          roll={combatResult.roll}
+          distance={combatResult.distance}
+          onDone={() => setCombatResult(null)}
+        />
+      )}
       {error && (
         <div className={styles.error} onClick={() => setError(null)}>
           {error}

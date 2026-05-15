@@ -1,0 +1,89 @@
+.wrap {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  background: rgba(18, 18, 28, 0.93);
+  border: 1px solid #444;
+  border-radius: 14px;
+  padding: 1rem 1.4rem 1.1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.55rem;
+  z-index: 300;
+  min-width: 170px;
+  animation: slideUp 0.2s ease-out;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.5);
+}
+
+.fadeOut {
+  animation: fadeOut 0.45s ease forwards;
+}
+
+@keyframes slideUp {
+  from { transform: translateY(16px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
+@keyframes fadeOut {
+  to { opacity: 0; transform: scale(0.88); }
+}
+
+.attacker {
+  font-size: 0.82rem;
+  color: #aaa;
+  letter-spacing: 0.02em;
+}
+
+/* Die */
+.die {
+  width: 84px;
+  height: 84px;
+  filter: drop-shadow(0 2px 6px rgba(0,0,0,0.5));
+}
+
+@keyframes shake {
+  0%   { transform: rotate(-8deg) scale(1.04); }
+  25%  { transform: rotate( 6deg) scale(0.97); }
+  50%  { transform: rotate(-5deg) scale(1.03); }
+  75%  { transform: rotate( 7deg) scale(0.98); }
+  100% { transform: rotate(-8deg) scale(1.04); }
+}
+
+.die.spinning {
+  animation: shake 0.15s infinite;
+}
+
+/* Result rows */
+.rollLine {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.1rem;
+}
+
+.rollNum {
+  font-size: 0.85rem;
+  color: #ccc;
+}
+
+.exploding {
+  font-size: 0.85rem;
+  color: #f0a030;
+  font-weight: 600;
+}
+
+.vs {
+  font-size: 0.72rem;
+  color: #666;
+}
+
+.verdict {
+  font-size: 1.7rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  line-height: 1;
+}
+
+.hit  { color: #e04040; text-shadow: 0 0 12px rgba(220,60,60,0.6); }
+.miss { color: #5080a0; }

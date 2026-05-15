@@ -322,6 +322,8 @@ def apply_move(game: GameState, board: BoardData, path: list[str]) -> None:
         _mark_objectives_pending(game)
 
     agent.last_seen_cell = compute_last_seen(game, board)
+    if agent.last_seen_cell is not None:
+        agent.identity_revealed = True
 
 
 # ---------------------------------------------------------------------------

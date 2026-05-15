@@ -6,12 +6,13 @@
 - Future additions: python agents to sub in for players, data analysis to see how different basic strategies combine against each other (prioritize speed, guard exits, recognize other players' strategies)
 
 ## 2. Next Steps
-- plan intermediate steps:
-  - basic test suite generation ✓
-  - FastAPI + WebSocket layer ✓
-  - React frontend board display ✓
-- db.py — SQLite event logging (log_event, fetch_game_log)
+- Basic test suite generation ✓
+- FastAPI + WebSocket layer ✓
+- React frontend board display ✓
+- Game logic fixes-- if i try to play the game like i would in meatspace, what still needs support?
 - Hunter/agent abilities (deferred stubs in engine)
+- Agent item usage
+- db.py — SQLite event logging (log_event, fetch_game_log)
 - Integration tests via Playwright (see 2b)
 
 ## 2a. Deferred UI

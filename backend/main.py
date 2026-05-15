@@ -611,12 +611,10 @@ async def handle_submit_attack(player_name: str) -> None:
     await broadcast_state()
     await _broadcast_combat_result(player_name, hit, roll, distance)
 
-    if game.agent.health <= 0:
-        from backend.engine import check_win
-        result = check_win(game)
-        await broadcast_state()
-        if result != WinCondition.NONE:
-            await _broadcast_game_over(result)
+    result = end_hunter_turn(game, board)
+    await broadcast_state()
+    if result != WinCondition.NONE:
+        await _broadcast_game_over(result)
 
 
 async def handle_end_hunter_turn(player_name: str) -> None:
