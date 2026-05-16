@@ -130,7 +130,7 @@ def setup_game(
 
     if resources_path is None:
         resources_path = Path(__file__).parent / "data" / "resources.json"
-    with open(resources_path) as f:
+    with open(resources_path, encoding="utf-8-sig") as f:
         resources = json.load(f)["resources"]
 
     board = load_board(board_name, resources_path)
@@ -171,6 +171,10 @@ def setup_game(
         items=item_states,
         abilities=resources["agents"][agent_character]["abilities"],
     )
+    # Toughness (Orangutan): +2 HP
+    if agent_character == "orangutan":
+        agent.health += 2
+        agent.max_health += 2
 
     hunters = []
     for player_name, character in zip(hunter_players, hunter_characters):
@@ -264,7 +268,7 @@ def get_legal_moves(
     return legal
 
 
-def apply_move(game: GameState, board: BoardData, path: list[str]) -> None:
+def apply_move(game: GameState, board: BoardData, path: list[str]) -> list[dict]:
     """
     Execute a confirmed agent path step by step.
 
@@ -275,9 +279,16 @@ def apply_move(game: GameState, board: BoardData, path: list[str]) -> None:
       1. Validates adjacency, passability, hunter occupancy, vehicle, budget.
       2. Advances agent.position and appends to agent.path_this_turn.
       3. Calls _mark_objectives_pending() for newly adjacent objectives.
+      4. Checks Quick Draw (Gun hunter passive): sets quick_draw_triggered_this_turn.
 
-    After all steps, calls compute_last_seen() and stores the result on
-    agent.last_seen_cell.
+    After all steps, calls compute_last_seen() or uses holo_decoy_cell override.
+    If Mantis and a last-seen marker is placed adjacent to a hunter, Blade Strike
+    auto-fires (roll d6, 3+ stuns, max 1 hunter per turn).
+
+    If pulse_blades is armed and a last-seen marker is placed, stuns all adjacent
+    hunters and consumes a charge.
+
+    Returns a list of passive trigger events for the WebSocket layer to broadcast.
 
     Caller is responsible for check_win() after this returns.
 
@@ -287,6 +298,7 @@ def apply_move(game: GameState, board: BoardData, path: list[str]) -> None:
       - any step is non-adjacent, impassable, hunter-occupied, vehicle, or over budget
     """
     agent = game.agent
+    events: list[dict] = []
 
     if not path:
         raise ValueError("Path must not be empty")
@@ -299,6 +311,14 @@ def apply_move(game: GameState, board: BoardData, path: list[str]) -> None:
         agent.path_this_turn.append(path[0])
 
     hunter_positions = {h.position for h in game.hunters if not h.in_vehicle}
+    blockers = board.get_blockers(game.active_obstacles)
+
+    # Gun hunters eligible for Quick Draw (not flashbanged, on board)
+    gun_hunters = [
+        h for h in game.hunters
+        if h.character == "gun" and not h.in_vehicle
+        and StatusEffect.FLASHBANGED not in h.status_effects
+    ]
 
     for i, destination in enumerate(path[1:], start=1):
         steps_used = len(agent.path_this_turn) - 1
@@ -324,9 +344,60 @@ def apply_move(game: GameState, board: BoardData, path: list[str]) -> None:
         agent.path_this_turn.append(destination)
         _mark_objectives_pending(game)
 
-    agent.last_seen_cell = compute_last_seen(game, board)
-    if agent.last_seen_cell is not None:
+        # Quick Draw: flag on first step where any Gun hunter has LOS
+        if not agent.quick_draw_triggered_this_turn:
+            for gh in gun_hunters:
+                if has_los(gh.position, agent.position, blockers):
+                    agent.quick_draw_triggered_this_turn = True
+                    break
+
+    # Determine last-seen cell (holo decoy overrides normal computation)
+    if agent.holo_decoy_cell is not None:
+        agent.last_seen_cell = agent.holo_decoy_cell
         agent.identity_revealed = True
+        agent.holo_decoy_cell = None
+    else:
+        agent.last_seen_cell = compute_last_seen(game, board)
+        if agent.last_seen_cell is not None:
+            agent.identity_revealed = True
+
+    last_seen = agent.last_seen_cell
+
+    # Mantis Blade Strike: auto-fires when last-seen placed adjacent to a hunter
+    if agent.character == "mantis" and last_seen and not agent.blade_strike_used_this_turn:
+        for h in game.hunters:
+            if h.in_vehicle:
+                continue
+            if adjacent(last_seen, h.position):
+                roll = random.randint(1, 6)
+                stunned = roll >= 3
+                if stunned:
+                    h.status_effects.add(StatusEffect.STUNNED)
+                agent.blade_strike_used_this_turn = True
+                events.append({
+                    "type": "blade_strike",
+                    "target": h.player_name,
+                    "roll": roll,
+                    "stunned": stunned,
+                })
+                break
+
+    # Pulse Blades: if armed and last-seen placed, stun adjacent hunters and consume charge
+    if agent.pulse_blades_armed and last_seen:
+        pb_item = next((i for i in agent.items if i.key == "pulse_blades"), None)
+        if pb_item and pb_item.charges > 0:
+            stunned_by_pb = []
+            for h in game.hunters:
+                if h.in_vehicle:
+                    continue
+                if adjacent(last_seen, h.position):
+                    h.status_effects.add(StatusEffect.STUNNED)
+                    stunned_by_pb.append(h.player_name)
+            pb_item.charges -= 1
+            events.append({"type": "pulse_blades", "stunned": stunned_by_pb})
+        agent.pulse_blades_armed = False
+
+    return events
 
 
 # ---------------------------------------------------------------------------
@@ -355,14 +426,19 @@ def _mark_objectives_pending(game: GameState) -> None:
     """
     Mark objectives adjacent to agent's current position as pending.
     Internal; called per step inside apply_move.
+    Frequency Hack (Blue Jay): objectives within 2 spaces complete instead of 1.
     """
     agent = game.agent
     incomplete = [
         obj for obj in game.objectives
         if obj not in agent.public_objectives and obj not in agent.pending_objectives
     ]
+    freq_hack = agent.character == "blue_jay"
     for obj in incomplete:
-        if adjacent(agent.position, obj) or agent.position == obj:
+        if freq_hack:
+            if chebyshev_distance(agent.position, obj) <= 2:
+                agent.pending_objectives.append(obj)
+        elif adjacent(agent.position, obj) or agent.position == obj:
             agent.pending_objectives.append(obj)
 
 
@@ -426,10 +502,17 @@ def resolve_combat(
     Returns (hit: bool, roll: int).
 
     Rules:
-      - distance 0: automatic hit (co-location shouldn't occur in normal play)
+      - distance 0: automatic hit
       - roll 1: automatic miss
       - roll 6: explodes (handled by roll_d6)
       - hit if roll >= distance
+
+    Passive modifiers applied by character:
+      Sharp Shooting (gun):   roll 2 dice, take higher
+      Mind-Reading (prophet): +2 to effective roll (roll of 1 still misses)
+      Evasion (spider agent): -2 when hunter is within 3 of agent
+      Brutal Strength (beast): on same-space hit, bonus d6 roll of 5+ deals 2 damage
+      Judgement (judge):      on hit, agent becomes FATIGUED
 
     forced_roll: inject a specific result for testing.
     Caller must confirm agent is visible, hunter is on the board, and not stunned.
@@ -439,18 +522,40 @@ def resolve_combat(
     if hunter.in_vehicle:
         raise ValueError(f"Hunter {hunter.player_name} is in the vehicle and cannot attack")
 
+    is_brutal_strength = hunter.character == "beast"
+    is_judgement = hunter.character == "judge"
+
     if distance == 0:
         agent.health -= 1
+        if is_brutal_strength:
+            if random.randint(1, 6) >= 5:
+                agent.health -= 1
+        if is_judgement:
+            agent.status_effects.add(StatusEffect.FATIGUED)
         return True, 0
 
-    roll = forced_roll if forced_roll is not None else roll_d6()
+    # Roll — Sharp Shooting takes the higher of two dice
+    if hunter.character == "gun":
+        roll1 = forced_roll if forced_roll is not None else roll_d6()
+        roll2 = roll_d6()
+        roll = max(roll1, roll2)
+    else:
+        roll = forced_roll if forced_roll is not None else roll_d6()
 
     if roll == 1:
         return False, roll
 
-    hit = roll >= distance
+    effective_roll = roll
+    if hunter.character == "prophet":
+        effective_roll += 2
+    if agent.character == "spider" and distance <= 3:
+        effective_roll -= 2
+
+    hit = effective_roll >= distance
     if hit:
         agent.health -= 1
+        if is_judgement:
+            agent.status_effects.add(StatusEffect.FATIGUED)
 
     return hit, roll
 
@@ -596,34 +701,82 @@ def can_use_item(game: GameState, item_key: str) -> tuple[bool, str]:
     item = next((i for i in game.agent.items if i.key == item_key), None)
     if item is None:
         return False, f"Item {item_key!r} not in inventory"
-    if item.charges <= 0:
-        return False, "No charges remaining"
     if item.tapped:
         return False, "Item is tapped"
+    # Proximity mine and pulse_blades don't check charges here (conditional consumption)
+    if item_key not in ("proximity_mine", "pulse_blades") and item.charges <= 0:
+        return False, "No charges remaining"
     if item_key == "med_kit" and len(game.agent.path_this_turn) > 1:
         return False, "Med Kit must be used before moving"
     return True, ""
 
 
-def apply_item(game: GameState, item_key: str, item_def: dict) -> dict:
+def apply_item(
+    game: GameState,
+    item_key: str,
+    item_def: dict,
+    board: Optional[BoardData] = None,
+    target_cell: Optional[str] = None,
+    target_player: Optional[str] = None,
+) -> dict:
     """
     Execute item use. Caller must have verified can_use_item first.
 
     item_def: the raw dict from resources.json for this item key.
+    board: required for items that check LOS (flash_bang, tangle_line).
+    target_cell: required for cell-targeted items.
+    target_player: required for player-targeted items.
 
     Returns a result dict broadcast to clients.
     Modifies item.charges / item.tapped and sets item_used_this_turn.
     """
     item = next(i for i in game.agent.items if i.key == item_key)
     taps = item_def.get("tap", "False") == "True"
+    item_range = int(item_def.get("range", 0))
 
+    game.agent.item_used_this_turn = True
+
+    # --- Items with conditional charge consumption (place before default tap/charge) ---
+
+    if item_key == "proximity_mine":
+        if not target_cell:
+            raise ValueError("proximity_mine requires target_cell")
+        if chebyshev_distance(game.agent.position, target_cell) > item_range:
+            raise ValueError(f"Target cell {target_cell!r} is out of range ({item_range} spaces)")
+        game.agent.proximity_mine_cell = target_cell
+        return {"effect": "mine_placed", "cell": target_cell}
+
+    if item_key == "pulse_blades":
+        # Charges consumed only when the blade strike fires (last-seen is placed)
+        game.agent.pulse_blades_armed = True
+        return {"effect": "pulse_blades_armed"}
+
+    if item_key == "tangle_line":
+        if not target_player:
+            raise ValueError("tangle_line requires target_player")
+        hunter = _get_hunter(game, target_player)
+        h_pos = game.vehicle.position if hunter.in_vehicle else hunter.position
+        blockers = board.get_blockers(game.active_obstacles) if board else frozenset()
+        if not has_los(h_pos, game.agent.position, blockers):
+            raise ValueError("Target hunter does not have LOS to Spider")
+        dist = chebyshev_distance(h_pos, game.agent.position)
+        roll = random.randint(1, 6)
+        hit = roll >= dist
+        if hit:
+            if taps:
+                item.tapped = True
+            else:
+                item.charges -= 1
+            hunter.status_effects.add(StatusEffect.STUNNED)
+        return {"effect": "tangle_line", "roll": roll, "distance": dist, "stunned": hit, "target": target_player}
+
+    # --- Default: consume charge / tap ---
     if taps:
         item.tapped = True
     else:
         item.charges -= 1
 
-    game.agent.item_used_this_turn = True
-
+    # --- Pre-existing items ---
     if item_key == "adrenal_surge":
         apply_effect(game, "GRANT_MOVEMENT", {"move_speed": 6})
         return {"effect": "movement_boosted", "move_speed": 6}
@@ -636,6 +789,87 @@ def apply_item(game: GameState, item_key: str, item_def: dict) -> dict:
     if item_key == "remote_trigger":
         game.agent.remote_trigger_active = True
         return {"effect": "remote_trigger_armed"}
+
+    # --- Phase 5 items ---
+
+    if item_key == "flash_bang":
+        if not target_cell:
+            raise ValueError("flash_bang requires target_cell")
+        if chebyshev_distance(game.agent.position, target_cell) > item_range:
+            raise ValueError(f"Target cell {target_cell!r} is out of range ({item_range} spaces)")
+        blockers = board.get_blockers(game.active_obstacles) if board else frozenset()
+        flashbanged = []
+        for h in game.hunters:
+            h_pos = game.vehicle.position if h.in_vehicle else h.position
+            if has_los(h_pos, target_cell, blockers):
+                h.status_effects.add(StatusEffect.FLASHBANGED)
+                flashbanged.append(h.player_name)
+        return {"effect": "flash_bang", "target_cell": target_cell, "flashbanged": flashbanged}
+
+    if item_key == "smoke_grenade":
+        if not target_cell:
+            raise ValueError("smoke_grenade requires target_cell")
+        if chebyshev_distance(game.agent.position, target_cell) > item_range:
+            raise ValueError(f"Target cell {target_cell!r} is out of range ({item_range} spaces)")
+        obstacle_cells = [target_cell] + neighbors(target_cell)
+        for cell in obstacle_cells:
+            if cell not in game.active_obstacles:
+                game.active_obstacles.append(cell)
+        return {"effect": "smoke_grenade", "center": target_cell, "obstacles": obstacle_cells}
+
+    if item_key == "concussion_grenade":
+        if not target_cell:
+            raise ValueError("concussion_grenade requires target_cell")
+        if chebyshev_distance(game.agent.position, target_cell) > item_range:
+            raise ValueError(f"Target cell {target_cell!r} is out of range ({item_range} spaces)")
+        results = []
+        for h in game.hunters:
+            h_pos = game.vehicle.position if h.in_vehicle else h.position
+            if chebyshev_distance(h_pos, target_cell) <= 1:
+                roll = random.randint(1, 6)
+                if roll <= 4:
+                    h.status_effects.add(StatusEffect.STUNNED)
+                results.append({"player": h.player_name, "roll": roll, "stunned": roll <= 4})
+        return {"effect": "concussion_grenade", "target_cell": target_cell, "results": results}
+
+    if item_key == "emp_grenade":
+        dist = chebyshev_distance(game.agent.position, game.vehicle.position)
+        if dist > item_range:
+            raise ValueError(f"Vehicle is {dist} spaces away (range {item_range})")
+        game.vehicle.emp_disabled = True
+        return {"effect": "emp_grenade"}
+
+    if item_key == "power_fists":
+        stunned = []
+        for h in game.hunters:
+            h_pos = game.vehicle.position if h.in_vehicle else h.position
+            if chebyshev_distance(h_pos, game.agent.position) <= 2:
+                h.status_effects.add(StatusEffect.STUNNED)
+                stunned.append(h.player_name)
+        return {"effect": "power_fists", "stunned": stunned}
+
+    if item_key == "holo_decoy":
+        if not target_cell:
+            raise ValueError("holo_decoy requires target_cell")
+        if chebyshev_distance(game.agent.position, target_cell) > item_range:
+            raise ValueError(f"Target cell {target_cell!r} is out of range ({item_range} spaces)")
+        game.agent.holo_decoy_cell = target_cell
+        return {"effect": "holo_decoy_placed"}
+
+    if item_key == "smoke_dagger":
+        if not target_player:
+            raise ValueError("smoke_dagger requires target_player")
+        hunter = _get_hunter(game, target_player)
+        h_pos = game.vehicle.position if hunter.in_vehicle else hunter.position
+        if chebyshev_distance(game.agent.position, h_pos) > item_range:
+            raise ValueError(f"Target hunter is out of range ({item_range} spaces)")
+        hunter.status_effects.add(StatusEffect.FLASHBANGED)
+        game.smoke_dagger_targets.append(target_player)
+        return {"effect": "smoke_dagger", "target": target_player}
+
+    if item_key == "stealth_field":
+        game.agent.stealth_field_active = True
+        return {"effect": "stealth_field"}
 
     return {"effect": "used", "item_key": item_key}
 
@@ -718,6 +952,47 @@ def apply_ability(
         return {"ability": "Motion Sensor", "direction": direction}
 
     raise ValueError(f"No apply logic for ability {ability_name!r}")
+
+
+# ---------------------------------------------------------------------------
+# Agent active abilities
+# ---------------------------------------------------------------------------
+
+def can_use_agent_ability(game: GameState, ability_name: str) -> tuple[bool, str]:
+    """
+    Check whether the agent may use ability_name right now.
+    Returns (allowed, reason).
+    """
+    if game.phase != TurnPhase.AGENT_TURN:
+        return False, "Not the agent's turn"
+    if StatusEffect.FATIGUED in game.agent.status_effects:
+        return False, "Agent is fatigued"
+    ability = next((a for a in game.agent.abilities if a["name"] == ability_name), None)
+    if ability is None:
+        return False, f"Agent does not have ability {ability_name!r}"
+    if not ability.get("active", False):
+        return False, "Ability is passive"
+
+    if ability_name == "Dash":
+        if len(game.agent.path_this_turn) > 1:
+            return False, "Dash must be used before moving"
+
+    return True, ""
+
+
+def apply_agent_ability(game: GameState, ability_name: str, _params: dict) -> dict:
+    """
+    Execute an agent active ability. Caller must have verified can_use_agent_ability.
+    Returns a result dict broadcast to clients.
+    """
+    if ability_name == "Dash":
+        game.agent.move_speed = 5
+        # FATIGUE applied immediately unless movement was already boosted by an item (Adrenal Surge)
+        if not game.agent.movement_boosted_by_item:
+            game.agent.status_effects.add(StatusEffect.FATIGUED)
+        return {"ability": "Dash", "move_speed": 5}
+
+    raise ValueError(f"No apply logic for agent ability {ability_name!r}")
 
 
 def _clairvoyance_check(hunter_pos: str, agent_pos: str, direction: str) -> bool:

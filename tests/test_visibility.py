@@ -62,6 +62,7 @@ def make_agent(position="P20", **kwargs) -> AgentState:
         max_health=4,
         move_speed=4,
         items=[],
+        abilities=[],
     )
     defaults.update(kwargs)
     return AgentState(**defaults)

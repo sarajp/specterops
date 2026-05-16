@@ -107,6 +107,16 @@ class AgentState:
     movement_boosted_by_item: bool = False  # True when Adrenal Surge used; exempts Fox Dash
     remote_trigger_active: bool = False     # delays next objective publication by one turn
 
+    # Phase 5 item state
+    stealth_field_active: bool = False           # visible only within 2 of any hunter
+    holo_decoy_cell: Optional[str] = None        # override last-seen placement this turn
+    proximity_mine_cell: Optional[str] = None    # armed mine location
+    pulse_blades_armed: bool = False             # triggers on last-seen placement
+
+    # Phase 6 passive trigger flags (reset each agent turn)
+    quick_draw_triggered_this_turn: bool = False
+    blade_strike_used_this_turn: bool = False
+
     # Traitor stub (deferred per claude.md)
     is_traitor: bool = False
 
@@ -156,6 +166,9 @@ class VehicleState:
     # player_name of the hunter currently driving, or None.
     # Distinct from HunterState.in_vehicle, which marks hunters not yet deployed.
     occupied_by: Optional[str] = None
+
+    # EMP grenade: vehicle cannot be moved or use abilities until start of agent turn
+    emp_disabled: bool = False
 
     # Full path driven this round — published to all clients
     # Used by run-over rule: agent checks own position against every cell
@@ -208,6 +221,9 @@ class GameState:
     # Cleared once consensus is reached or on each new HUNTER_NEGOTIATE phase
     hunter_order_proposals: dict = field(default_factory=dict)
     order_mismatch: bool = False  # True when all proposals came in but disagreed
+
+    # Smoke Dagger: FLASHBANGED hunters to un-flashbang at end of agent turn
+    smoke_dagger_targets: list[str] = field(default_factory=list)
 
     @property
     def is_over(self) -> bool:

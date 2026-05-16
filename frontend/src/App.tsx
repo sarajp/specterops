@@ -8,6 +8,7 @@ import Board from './components/Board';
 import ActionBar from './components/ActionBar';
 import PlayerPanel from './components/PlayerPanel';
 import AgentItems from './components/AgentItems';
+import AgentAbilities from './components/AgentAbilities';
 import HunterAbilities from './components/HunterAbilities';
 import DiceRoll from './components/DiceRoll';
 import type { AbilityResultMessage, CombatResultMessage } from './types/ws';
@@ -170,6 +171,7 @@ export default function App() {
             />
             {gameView.role === 'agent' && (
               <div className={styles.itemsFooter}>
+                <AgentAbilities view={gameView as import('./types/game').AgentGameView} send={send} />
                 <AgentItems view={gameView} send={send} />
               </div>
             )}

@@ -91,6 +91,7 @@ def make_agent(position="P20", health=4, public_objectives=None) -> AgentState:
         max_health=4,
         move_speed=4,
         items=[],
+        abilities=[],
         public_objectives=public_objectives or [],
     )
 

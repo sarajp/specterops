@@ -28,7 +28,7 @@ from __future__ import annotations
 
 from backend.board import BoardData
 from backend.loop import is_agent_visible_to
-from backend.state import GameState, HunterState, StatusEffect
+from backend.state import GameState, HunterState
 
 
 # ---------------------------------------------------------------------------

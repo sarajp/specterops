@@ -44,21 +44,22 @@ RESOURCES = Path(__file__).parent.parent / "backend" / "data" / "resources.json"
 # Helpers
 # ---------------------------------------------------------------------------
 
-def make_agent(position="P10", health=4, move_speed=4, public_objectives=None) -> AgentState:
+def make_agent(position="P10", health=4, move_speed=4, public_objectives=None, character="cobra") -> AgentState:
     return AgentState(
-        character="cobra",
+        character=character,
         position=position,
         health=health,
         max_health=4,
         move_speed=move_speed,
         items=[],
+        abilities=[],
         public_objectives=public_objectives or [],
     )
 
 
-def make_hunter(position="A1", player_name="h1", move_speed=4, in_vehicle=False) -> HunterState:
+def make_hunter(position="A1", player_name="h1", move_speed=4, in_vehicle=False, character="puppet") -> HunterState:
     return HunterState(
-        character="gun",
+        character=character,
         player_name=player_name,
         position=position,
         move_speed=move_speed,

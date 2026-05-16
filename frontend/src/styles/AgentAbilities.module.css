@@ -1,0 +1,50 @@
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.abilityRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  background: #1e1e2e;
+  border: 1px solid #3a3a52;
+  border-radius: 6px;
+  padding: 0.5rem;
+}
+
+.abilityInfo {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.abilityName {
+  font-size: 0.85rem;
+  font-weight: bold;
+  color: #c9a0ff;
+}
+
+.description {
+  font-size: 0.75rem;
+  color: #888;
+  line-height: 1.3;
+}
+
+.useBtn {
+  padding: 0.3rem 0.6rem;
+  background: #7a50a0;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.useBtn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}

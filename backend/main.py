@@ -43,26 +43,28 @@ Assumptions:
 
 import json
 import logging
+import random
 from pathlib import Path
 from typing import Optional
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 
-from backend.board import BoardData
+from backend.board import BoardData, chebyshev_distance, orthogonal_adjacent
 from backend.engine import (
     apply_ability,
+    apply_agent_ability,
     apply_item,
     apply_move,
     apply_vehicle_move,
     can_use_ability,
+    can_use_agent_ability,
     can_use_item,
     enter_vehicle,
     exit_vehicle,
     get_legal_moves,
     resolve_combat,
     setup_game,
-    chebyshev_distance,
 )
 from backend.loop import (
     end_agent_turn,
@@ -260,7 +262,7 @@ async def handle_start_game(player_name: str) -> None:
         player_count = len(lobby)
         max_equipment = 5 if player_count == 4 else 3
 
-        with open(RESOURCES) as f:
+        with open(RESOURCES, encoding="utf-8-sig") as f:
             res = json.load(f)["resources"]
         _item_defs = res["items"]
         agent_display_name = res["agents"].get(entry["character"], {}).get("name", "")
@@ -346,6 +348,33 @@ async def handle_setup_game(player_name: str, msg: dict) -> None:
     await broadcast_state()
 
 
+def _trigger_proximity_mine() -> list[str]:
+    """
+    Check and fire the proximity mine at the start of the agent's turn.
+    Returns list of stunned player names (empty if no trigger or no hunters in range).
+    Consumes one mine charge and clears the mine cell on trigger.
+    """
+    mine_cell = game.agent.proximity_mine_cell
+    if not mine_cell:
+        return []
+    in_range = [
+        h for h in game.hunters
+        if chebyshev_distance(
+            game.vehicle.position if h.in_vehicle else h.position,
+            mine_cell
+        ) <= 4
+    ]
+    if not in_range:
+        return []
+    mine_item = next((i for i in game.agent.items if i.key == "proximity_mine"), None)
+    if mine_item:
+        mine_item.charges -= 1
+    for h in in_range:
+        h.status_effects.add(StatusEffect.STUNNED)
+    game.agent.proximity_mine_cell = None
+    return [h.player_name for h in in_range]
+
+
 async def handle_start_agent_turn(player_name: str) -> None:
     if not _require_game(player_name):
         await send_error(player_name, "No game in progress")
@@ -353,12 +382,24 @@ async def handle_start_agent_turn(player_name: str) -> None:
     if player_name != agent_player_name:
         await send_error(player_name, "Only the agent can start the agent turn")
         return
+
+    # Proximity mine triggers before the turn resets
+    mine_stunned = _trigger_proximity_mine()
+
     try:
         result = start_agent_turn(game, board)
     except ValueError as e:
         await send_error(player_name, str(e))
         return
     await broadcast_state()
+    if mine_stunned:
+        payload = {"type": "ability_result", "ability": "Proximity Mine",
+                   "stunned": mine_stunned}
+        for ws in list(connections.values()):
+            try:
+                await ws.send_text(json.dumps(payload))
+            except Exception:
+                pass
     if result != WinCondition.NONE:
         await _broadcast_game_over(result)
 
@@ -373,11 +414,58 @@ async def handle_submit_path(player_name: str, msg: dict) -> None:
         return
     try:
         path = msg["path"]
-        apply_move(game, board, path)
+        events = apply_move(game, board, path)
     except (KeyError, ValueError) as e:
         await send_error(player_name, str(e))
         return
     await broadcast_state()
+
+    # Broadcast passive trigger events
+    for ev in events:
+        ev_type = ev.get("type")
+        if ev_type == "blade_strike":
+            payload = {"type": "ability_result", "ability": "Blade Strike",
+                       "target": ev["target"], "roll": ev["roll"], "stunned": ev["stunned"]}
+            for ws in list(connections.values()):
+                try:
+                    await ws.send_text(json.dumps(payload))
+                except Exception:
+                    pass
+        elif ev_type == "pulse_blades":
+            payload = {"type": "ability_result", "ability": "Pulse Blades",
+                       "stunned": ev["stunned"]}
+            for ws in list(connections.values()):
+                try:
+                    await ws.send_text(json.dumps(payload))
+                except Exception:
+                    pass
+
+    # Quick Draw: Gun hunter fires if agent crossed their LOS this turn
+    if game.agent.quick_draw_triggered_this_turn:
+        gun_hunter = next(
+            (h for h in game.hunters if h.character == "gun" and not h.in_vehicle), None
+        )
+        if gun_hunter:
+            ref_cell = game.agent.last_seen_cell or game.agent.position
+            dist = chebyshev_distance(gun_hunter.position, ref_cell)
+            roll = random.randint(1, 6)
+            hit = roll >= dist
+            if hit:
+                game.agent.health -= 1
+            await broadcast_state()
+            payload = {
+                "type": "ability_result",
+                "ability": "Quick Draw",
+                "attacker": gun_hunter.player_name,
+                "roll": roll,
+                "distance": dist,
+                "hit": hit,
+            }
+            for ws in list(connections.values()):
+                try:
+                    await ws.send_text(json.dumps(payload))
+                except Exception:
+                    pass
 
 
 async def handle_end_agent_turn(player_name: str) -> None:
@@ -500,6 +588,42 @@ async def handle_submit_hunter_move(player_name: str, msg: dict) -> None:
 
     await broadcast_state()
 
+    passive_events: list[dict] = []
+
+    # Cobra Ambush: triggers when a hunter ends on or orthogonally adjacent to agent (Cobra)
+    if game.agent.character == "cobra":
+        agent_pos = game.agent.position
+        if hunter.position == agent_pos:
+            hunter.status_effects.add(StatusEffect.STUNNED)
+            passive_events.append({"type": "ability_result", "ability": "Ambush",
+                                   "trigger": "same_space", "stunned": True,
+                                   "target": player_name})
+        elif orthogonal_adjacent(hunter.position, agent_pos):
+            roll = random.randint(1, 6)
+            stunned = roll >= 4
+            if stunned:
+                hunter.status_effects.add(StatusEffect.STUNNED)
+            passive_events.append({"type": "ability_result", "ability": "Ambush",
+                                   "trigger": "adjacent", "roll": roll, "stunned": stunned,
+                                   "target": player_name})
+
+    # Enhanced Senses: Beast moved ≤3 spaces, agent within 4 spaces
+    if hunter.character == "beast":
+        steps = len(hunter.path_this_turn) - 1 if hunter.path_this_turn else 0
+        if steps <= 3:
+            close = chebyshev_distance(hunter.position, game.agent.position) <= 4
+            passive_events.append({"type": "ability_result", "ability": "Enhanced Senses",
+                                   "close": close})
+
+    for ev in passive_events:
+        if ev.get("type") == "ability_result":
+            await broadcast_state()
+        for ws in list(connections.values()):
+            try:
+                await ws.send_text(json.dumps(ev))
+            except Exception:
+                pass
+
 
 async def handle_submit_vehicle_move(player_name: str, msg: dict) -> None:
     """
@@ -522,6 +646,9 @@ async def handle_submit_vehicle_move(player_name: str, msg: dict) -> None:
         return
     if hunter.moved_this_turn:
         await send_error(player_name, "Already moved this turn")
+        return
+    if game.vehicle.emp_disabled:
+        await send_error(player_name, "Vehicle is EMP disabled")
         return
 
     try:
@@ -673,8 +800,11 @@ async def handle_use_item(player_name: str, msg: dict) -> None:
         await send_error(player_name, f"Unknown item {item_key!r}")
         return
 
+    target_cell = msg.get("target_cell")
+    target_player = msg.get("target_player")
+
     try:
-        result = apply_item(game, item_key, item_def)
+        result = apply_item(game, item_key, item_def, board, target_cell, target_player)
     except ValueError as e:
         await send_error(player_name, str(e))
         return
@@ -697,6 +827,32 @@ async def handle_use_ability(player_name: str, msg: dict) -> None:
         await send_error(player_name, "No game in progress")
         return
 
+    ability_name = msg.get("ability_name")
+    if not ability_name:
+        await send_error(player_name, "ability_name required")
+        return
+
+    # Agent active abilities (Fox Dash, Panther Shadow Step, etc.)
+    if player_name == agent_player_name:
+        ok, reason = can_use_agent_ability(game, ability_name)
+        if not ok:
+            await send_error(player_name, reason)
+            return
+        try:
+            result = apply_agent_ability(game, ability_name, msg)
+        except ValueError as e:
+            await send_error(player_name, str(e))
+            return
+        await broadcast_state()
+        event = {"type": "ability_result", **result}
+        for ws in list(connections.values()):
+            try:
+                await ws.send_text(json.dumps(event))
+            except Exception:
+                pass
+        return
+
+    # Hunter active abilities
     active = _active_hunter_name()
     if player_name != active:
         await send_error(player_name, f"It is {active}'s turn, not {player_name}'s")
@@ -705,11 +861,6 @@ async def handle_use_ability(player_name: str, msg: dict) -> None:
     hunter = next((h for h in game.hunters if h.player_name == player_name), None)
     if hunter is None:
         await send_error(player_name, "Hunter not found")
-        return
-
-    ability_name = msg.get("ability_name")
-    if not ability_name:
-        await send_error(player_name, "ability_name required")
         return
 
     ok, reason = can_use_ability(game, hunter, ability_name)

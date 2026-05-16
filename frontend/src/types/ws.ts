@@ -125,6 +125,8 @@ export interface EndHunterTurnMsg {
 export interface UseItemMsg {
   type: 'use_item';
   item_key: string;
+  target_cell?: string;    // cell-targeted items (flash_bang, smoke_grenade, etc.)
+  target_player?: string;  // player-targeted items (smoke_dagger, tangle_line)
 }
 
 export interface UseAbilityMsg {

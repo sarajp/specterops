@@ -40,6 +40,20 @@
   transform: translate(-50%, -50%) rotate(-90deg);
 }
 
+.targetRow {
+  width: 100%;
+}
+
+.targetInput {
+  width: 100%;
+  padding: 0.4rem 0.6rem;
+  background: #1e1e2e;
+  border: 1px solid #4a4a62;
+  border-radius: 6px;
+  color: #eee;
+  font-size: 0.9rem;
+}
+
 .zoomActions {
   display: flex;
   gap: 0.75rem;

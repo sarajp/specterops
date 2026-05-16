@@ -95,6 +95,14 @@ def adjacent(a: str, b: str) -> bool:
     return chebyshev_distance(a, b) == 1
 
 
+def orthogonal_adjacent(a: str, b: str) -> bool:
+    """True if a and b are orthogonally adjacent (N/S/E/W only, not diagonal)."""
+    ac, ar = cell_col(a), cell_row(a)
+    bc, br = cell_col(b), cell_row(b)
+    dc, dr = abs(ac - bc), abs(ar - br)
+    return (dc == 1 and dr == 0) or (dc == 0 and dr == 1)
+
+
 # ---------------------------------------------------------------------------
 # LOS
 # ---------------------------------------------------------------------------
@@ -209,7 +217,7 @@ def load_board(board_name: str, resources_path: Optional[Path] = None) -> BoardD
     if resources_path is None:
         resources_path = Path(__file__).parent / "data" / "resources.json"
 
-    with open(resources_path, "r") as f:
+    with open(resources_path, "r", encoding="utf-8-sig") as f:
         data = json.load(f)
 
     key = BOARD_KEYS[board_name]

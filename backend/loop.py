@@ -60,7 +60,7 @@ Assumptions:
   - Supply cache interactions are deferred.
 """
 
-from backend.board import BoardData, has_los
+from backend.board import BoardData, has_los, chebyshev_distance
 from backend.engine import check_win, check_timeout, publish_pending_objectives
 from backend.state import (
     ActiveEffect,
@@ -101,6 +101,15 @@ def start_agent_turn(game: GameState, board: BoardData) -> WinCondition:
     game.agent.item_used_this_turn = False
     game.agent.move_speed = 4
     game.agent.movement_boosted_by_item = False
+    game.agent.stealth_field_active = False
+    game.agent.quick_draw_triggered_this_turn = False
+    game.agent.blade_strike_used_this_turn = False
+    game.agent.pulse_blades_armed = False
+    game.vehicle.emp_disabled = False
+
+    # Clear agent FATIGUED if last turn she moved ≤2 spaces (same rule as hunters)
+    if game.agent.last_turn_steps <= 2:
+        game.agent.status_effects.discard(StatusEffect.FATIGUED)
 
     game.phase = TurnPhase.AGENT_TURN
     return WinCondition.NONE
@@ -126,6 +135,13 @@ def end_agent_turn(game: GameState, board: BoardData) -> WinCondition:
     agent = game.agent
     agent.last_turn_steps = len(agent.path_this_turn) - 1 if agent.path_this_turn else 0
     agent.position_history.append(agent.position)
+
+    # Smoke Dagger expires at end of agent turn (before hunters go)
+    for player_name in game.smoke_dagger_targets:
+        h = next((h for h in game.hunters if h.player_name == player_name), None)
+        if h:
+            h.status_effects.discard(StatusEffect.FLASHBANGED)
+    game.smoke_dagger_targets = []
 
     _evaluate_escape(game)
     result = check_win(game)
@@ -359,6 +375,14 @@ def end_round(game: GameState) -> WinCondition:
     game.agent.item_used_this_turn = False
     game.agent.move_speed = 4
     game.agent.movement_boosted_by_item = False
+    game.agent.stealth_field_active = False
+    game.agent.quick_draw_triggered_this_turn = False
+    game.agent.blade_strike_used_this_turn = False
+    game.agent.pulse_blades_armed = False
+    game.vehicle.emp_disabled = False
+
+    if game.agent.last_turn_steps <= 2:
+        game.agent.status_effects.discard(StatusEffect.FATIGUED)
 
     game.phase = TurnPhase.AGENT_TURN
     return WinCondition.NONE
@@ -411,5 +435,11 @@ def is_agent_visible_to(
         return False
 
     pos = game.vehicle.position if hunter.in_vehicle else hunter.position
+
+    # Stealth Field: agent invisible beyond 2 spaces regardless of LOS
+    if game.agent.stealth_field_active:
+        if chebyshev_distance(pos, game.agent.position) > 2:
+            return False
+
     blockers = board.get_blockers(game.active_obstacles)
     return has_los(pos, game.agent.position, blockers)
