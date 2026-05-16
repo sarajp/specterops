@@ -35,6 +35,7 @@ from backend.engine import (
     publish_pending_objectives,
     roll_d6,
     setup_game,
+    _mark_objectives_pending,
 )
 
 RESOURCES = Path(__file__).parent.parent / "backend" / "data" / "resources.json"
@@ -586,3 +587,253 @@ class TestSetupGame:
             agent_items=[], resources_path=RESOURCES,
         )
         assert len(game.objectives) == 4
+
+
+# ---------------------------------------------------------------------------
+# resolve_combat — character passives
+# ---------------------------------------------------------------------------
+
+class TestResolveCombatPassives:
+    # Beast / Brutal Strength — distance 0: bonus d6 roll ≥ 5 → extra damage
+    def test_beast_brutal_strength_bonus_hit_deals_extra_damage(self):
+        agent = make_agent("P10", health=4)
+        hunter = make_hunter("P10", character="beast", in_vehicle=False)
+        # randint for bonus roll: 5 → second wound
+        with patch("backend.engine.random.randint", return_value=5):
+            hit, _ = resolve_combat(hunter, agent, distance=0)
+        assert hit is True
+        assert agent.health == 2  # -1 from auto-hit, -1 from bonus roll
+
+    def test_beast_brutal_strength_bonus_miss_deals_normal_damage(self):
+        agent = make_agent("P10", health=4)
+        hunter = make_hunter("P10", character="beast", in_vehicle=False)
+        with patch("backend.engine.random.randint", return_value=4):
+            resolve_combat(hunter, agent, distance=0)
+        assert agent.health == 3  # only auto-hit damage
+
+    # Judge — on any hit, agent becomes FATIGUED
+    def test_judge_applies_fatigued_on_distance_0_hit(self):
+        agent = make_agent("P10")
+        hunter = make_hunter("P10", character="judge", in_vehicle=False)
+        resolve_combat(hunter, agent, distance=0)
+        assert StatusEffect.FATIGUED in agent.status_effects
+
+    def test_judge_applies_fatigued_on_roll_hit(self):
+        agent = make_agent("P10")
+        hunter = make_hunter("P10", character="judge", in_vehicle=False)
+        resolve_combat(hunter, agent, distance=3, forced_roll=4)  # 4 >= 3 = hit
+        assert StatusEffect.FATIGUED in agent.status_effects
+
+    def test_judge_no_fatigued_on_miss(self):
+        agent = make_agent("P10")
+        hunter = make_hunter("P10", character="judge", in_vehicle=False)
+        resolve_combat(hunter, agent, distance=5, forced_roll=3)  # 3 < 5 = miss
+        assert StatusEffect.FATIGUED not in agent.status_effects
+
+    # Prophet — effective roll +2
+    def test_prophet_plus2_turns_miss_into_hit(self):
+        agent = make_agent("P10", health=4)
+        hunter = make_hunter("A1", character="prophet", in_vehicle=False)
+        # distance=4, roll=2 → normally 2<4=miss; with +2 → 4>=4=hit
+        hit, _ = resolve_combat(hunter, agent, distance=4, forced_roll=2)
+        assert hit is True
+        assert agent.health == 3
+
+    def test_prophet_roll_1_still_misses(self):
+        agent = make_agent("P10", health=4)
+        hunter = make_hunter("A1", character="prophet", in_vehicle=False)
+        hit, _ = resolve_combat(hunter, agent, distance=1, forced_roll=1)
+        assert hit is False
+        assert agent.health == 4
+
+    # Spider agent — -2 to effective roll when hunter within 3 spaces
+    def test_spider_minus2_turns_hit_into_miss(self):
+        agent = make_agent("P10", health=4, character="spider")
+        hunter = make_hunter("P12", in_vehicle=False)  # distance 2, within 3
+        # roll=3, distance=2 → normally 3>=2=hit; with -2 → 1<2=miss
+        hit, _ = resolve_combat(hunter, agent, distance=2, forced_roll=3)
+        assert hit is False
+        assert agent.health == 4
+
+    def test_spider_no_penalty_beyond_3(self):
+        agent = make_agent("P10", health=4, character="spider")
+        hunter = make_hunter("P14", in_vehicle=False)  # distance 4, outside 3
+        # roll=4, distance=4 → 4>=4=hit, no spider penalty (distance > 3)
+        hit, _ = resolve_combat(hunter, agent, distance=4, forced_roll=4)
+        assert hit is True
+        assert agent.health == 3
+
+    # Gun / Sharp Shooting — rolls two dice, takes max
+    def test_gun_sharp_shooting_uses_higher_of_two_rolls(self):
+        agent = make_agent("P10", health=4)
+        hunter = make_hunter("A1", character="gun", in_vehicle=False)
+        # forced_roll=1 (roll1=1), roll_d6 returns 5 (roll2=5) → max=5 >= distance=3 = hit
+        with patch("backend.engine.roll_d6", return_value=5):
+            hit, _ = resolve_combat(hunter, agent, distance=3, forced_roll=1)
+        assert hit is True
+
+    def test_gun_sharp_shooting_roll_1_forced_can_still_miss_if_both_low(self):
+        agent = make_agent("P10", health=4)
+        hunter = make_hunter("A1", character="gun", in_vehicle=False)
+        # forced_roll=1, roll_d6=1 → max=1 → auto miss (roll==1 check)
+        with patch("backend.engine.roll_d6", return_value=1):
+            hit, _ = resolve_combat(hunter, agent, distance=3, forced_roll=1)
+        assert hit is False
+
+
+# ---------------------------------------------------------------------------
+# apply_move — passive triggers
+# ---------------------------------------------------------------------------
+
+class TestApplyMovePassives:
+    # Holo Decoy override
+    def test_holo_decoy_sets_last_seen_to_decoy_cell(self):
+        # Hunter at A1 with clear LOS to the agent's path; holo decoy overrides
+        game, board = make_game(agent_pos="P10", hunter_positions=[("A1", False)])
+        game.agent.holo_decoy_cell = "P13"
+        apply_move(game, board, ["P10", "P11"])
+        assert game.agent.last_seen_cell == "P13"
+
+    def test_holo_decoy_cleared_after_apply_move(self):
+        game, board = make_game(agent_pos="P10", hunter_positions=[("A1", False)])
+        game.agent.holo_decoy_cell = "P13"
+        apply_move(game, board, ["P10", "P11"])
+        assert game.agent.holo_decoy_cell is None
+
+    # Pulse Blades auto-trigger
+    # Mock compute_last_seen to return A9 (adjacent to hunter A8) so trigger fires cleanly.
+    def test_pulse_blades_stuns_adjacent_hunter_on_last_seen(self):
+        from backend.state import ItemState
+        game, board = make_game(agent_pos="A9", hunter_positions=[("A8", False)])
+        pb = ItemState(key="pulse_blades", name="Pulse Blades", charges=2)
+        game.agent.items.append(pb)
+        game.agent.pulse_blades_armed = True
+        with patch("backend.engine.compute_last_seen", return_value="A9"):
+            apply_move(game, board, ["A9", "A10"])
+        assert StatusEffect.STUNNED in game.hunters[0].status_effects
+
+    def test_pulse_blades_consumes_charge_on_trigger(self):
+        from backend.state import ItemState
+        game, board = make_game(agent_pos="A9", hunter_positions=[("A8", False)])
+        pb = ItemState(key="pulse_blades", name="Pulse Blades", charges=2)
+        game.agent.items.append(pb)
+        game.agent.pulse_blades_armed = True
+        with patch("backend.engine.compute_last_seen", return_value="A9"):
+            apply_move(game, board, ["A9", "A10"])
+        assert pb.charges == 1
+
+    def test_pulse_blades_disarmed_after_trigger(self):
+        from backend.state import ItemState
+        game, board = make_game(agent_pos="A9", hunter_positions=[("A8", False)])
+        pb = ItemState(key="pulse_blades", name="Pulse Blades", charges=2)
+        game.agent.items.append(pb)
+        game.agent.pulse_blades_armed = True
+        with patch("backend.engine.compute_last_seen", return_value="A9"):
+            apply_move(game, board, ["A9", "A10"])
+        assert game.agent.pulse_blades_armed is False
+
+    # Mantis Blade Strike
+    # Mock compute_last_seen to return A9 (adjacent to hunter A8) so blade strike fires.
+    def test_blade_strike_returns_event_when_last_seen_adjacent_to_hunter(self):
+        game, board = make_game(agent_pos="A9", hunter_positions=[("A8", False)])
+        game.agent = make_agent("A9", character="mantis")
+        game.agent.path_this_turn = []
+        with patch("backend.engine.compute_last_seen", return_value="A9"):
+            with patch("backend.engine.random.randint", return_value=4):  # 4 >= 3 = stun
+                events = apply_move(game, board, ["A9", "A10"])
+        blade_events = [e for e in events if e["type"] == "blade_strike"]
+        assert len(blade_events) == 1
+
+    def test_blade_strike_fires_at_most_once_per_turn(self):
+        # Two hunters both adjacent to last-seen cell; blade strike should still only fire once
+        game, board = make_game(agent_pos="A9", hunter_positions=[("A8", False), ("A10", False)])
+        game.agent = make_agent("A9", character="mantis")
+        game.agent.path_this_turn = []
+        # Agent can't move to A10 (hunter there), move to B8 instead
+        with patch("backend.engine.random.randint", return_value=5):
+            events = apply_move(game, board, ["A9", "B8"])
+        blade_events = [e for e in events if e["type"] == "blade_strike"]
+        assert len(blade_events) <= 1
+
+    # Quick Draw flag
+    # Agent A9, gun hunter A8 (adjacent, clear LOS). Agent moves to A10.
+    # Mid-step at A9, gun hunter has LOS → quick draw triggered.
+    def test_quick_draw_flagged_when_gun_hunter_has_los_mid_move(self):
+        game, board = make_game(agent_pos="A9", hunter_positions=[("A8", False)])
+        game.hunters[0] = make_hunter("A8", character="gun", in_vehicle=False)
+        game.agent.path_this_turn = []
+        apply_move(game, board, ["A9", "A10"])
+        assert game.agent.quick_draw_triggered_this_turn is True
+
+    def test_quick_draw_not_flagged_for_non_gun_hunter(self):
+        game, board = make_game(agent_pos="A9", hunter_positions=[("A8", False)])
+        game.hunters[0] = make_hunter("A8", character="puppet", in_vehicle=False)
+        game.agent.path_this_turn = []
+        apply_move(game, board, ["A9", "A10"])
+        assert game.agent.quick_draw_triggered_this_turn is False
+
+
+# ---------------------------------------------------------------------------
+# setup_game — character-specific rules
+# ---------------------------------------------------------------------------
+
+class TestSetupGameCharacterRules:
+    def test_orangutan_gets_extra_health(self):
+        game, _ = setup_game(
+            board_name="Broken Covenant",
+            agent_player="p1", agent_character="orangutan",
+            hunter_players=["p2"], hunter_characters=["puppet"],
+            agent_items=[], resources_path=RESOURCES,
+        )
+        assert game.agent.health == 6
+        assert game.agent.max_health == 6
+
+    def test_non_orangutan_health_unchanged(self):
+        game, _ = setup_game(
+            board_name="Broken Covenant",
+            agent_player="p1", agent_character="cobra",
+            hunter_players=["p2"], hunter_characters=["puppet"],
+            agent_items=[], resources_path=RESOURCES,
+        )
+        assert game.agent.health == 4
+
+
+# ---------------------------------------------------------------------------
+# _mark_objectives_pending — Blue Jay Frequency Hack
+# ---------------------------------------------------------------------------
+
+class TestMarkObjectivesPendingBluejay:
+    def _game_at(self, agent_pos, char="cobra"):
+        game, _ = make_game(
+            agent_pos=agent_pos,
+            hunter_positions=[("A1", True)],
+        )
+        game.agent = make_agent(agent_pos, character=char)
+        game.objectives = ["P12"]  # one objective to test against
+        return game
+
+    def test_blue_jay_completes_objective_at_distance_2(self):
+        # P10 → P12 is Chebyshev 2; Blue Jay should mark it pending
+        game = self._game_at("P10", char="blue_jay")
+        _mark_objectives_pending(game)
+        assert "P12" in game.agent.pending_objectives
+
+    def test_blue_jay_does_not_complete_objective_at_distance_3(self):
+        # P10 → P13 is Chebyshev 3; outside Blue Jay range
+        game = self._game_at("P10", char="blue_jay")
+        game.objectives = ["P13"]
+        _mark_objectives_pending(game)
+        assert "P13" not in game.agent.pending_objectives
+
+    def test_normal_agent_requires_adjacency(self):
+        # Cobra at P10, objective at P12 (distance 2) → should NOT mark pending
+        game = self._game_at("P10", char="cobra")
+        _mark_objectives_pending(game)
+        assert "P12" not in game.agent.pending_objectives
+
+    def test_normal_agent_marks_adjacent_objective(self):
+        # Cobra at P10, objective at P11 (adjacent) → should mark pending
+        game = self._game_at("P10", char="cobra")
+        game.objectives = ["P11"]
+        _mark_objectives_pending(game)
+        assert "P11" in game.agent.pending_objectives

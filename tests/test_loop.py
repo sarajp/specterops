@@ -647,3 +647,123 @@ class TestIsAgentVisibleTo:
         board = load_board("Shadow of Babel", RESOURCES)
         assert "A2" in board.walls
         assert is_agent_visible_to(h, game, board) is False
+
+
+# ---------------------------------------------------------------------------
+# is_agent_visible_to — stealth field
+# ---------------------------------------------------------------------------
+
+class TestIsAgentVisibleToStealthField:
+    def test_stealth_field_hides_agent_beyond_2_spaces(self):
+        # Hunter at A1, agent at P20 (far away); stealth field active → not visible
+        h = make_hunter("h1", position="A1", in_vehicle=False)
+        game = make_game(hunters=[h], agent_pos="P20")
+        game.agent.stealth_field_active = True
+        board = get_board()
+        assert is_agent_visible_to(h, game, board) is False
+
+    def test_stealth_field_reveals_agent_within_2_spaces(self):
+        # Hunter at P19, agent at P20 (chebyshev 1); stealth field active → still visible
+        h = make_hunter("h1", position="P19", in_vehicle=False)
+        game = make_game(hunters=[h], agent_pos="P20")
+        game.agent.stealth_field_active = True
+        board = get_board()
+        assert is_agent_visible_to(h, game, board) is True
+
+    def test_stealth_field_off_uses_normal_los(self):
+        # No stealth field; same positions as above should still see agent
+        h = make_hunter("h1", position="P19", in_vehicle=False)
+        game = make_game(hunters=[h], agent_pos="P20")
+        game.agent.stealth_field_active = False
+        board = get_board()
+        assert is_agent_visible_to(h, game, board) is True
+
+
+# ---------------------------------------------------------------------------
+# start_agent_turn — phase 5/6 flag resets
+# ---------------------------------------------------------------------------
+
+class TestStartAgentTurnFlagResets:
+    def _game_with_flags(self):
+        game = make_game(phase=TurnPhase.HUNTER_TURN)
+        game.agent.stealth_field_active = True
+        game.agent.pulse_blades_armed = True
+        game.agent.quick_draw_triggered_this_turn = True
+        game.agent.blade_strike_used_this_turn = True
+        game.vehicle.emp_disabled = True
+        return game
+
+    def test_clears_stealth_field_active(self):
+        game = self._game_with_flags()
+        start_agent_turn(game, get_board())
+        assert game.agent.stealth_field_active is False
+
+    def test_clears_pulse_blades_armed(self):
+        game = self._game_with_flags()
+        start_agent_turn(game, get_board())
+        assert game.agent.pulse_blades_armed is False
+
+    def test_clears_quick_draw_triggered(self):
+        game = self._game_with_flags()
+        start_agent_turn(game, get_board())
+        assert game.agent.quick_draw_triggered_this_turn is False
+
+    def test_clears_blade_strike_used(self):
+        game = self._game_with_flags()
+        start_agent_turn(game, get_board())
+        assert game.agent.blade_strike_used_this_turn is False
+
+    def test_clears_emp_disabled(self):
+        game = self._game_with_flags()
+        start_agent_turn(game, get_board())
+        assert game.vehicle.emp_disabled is False
+
+    def test_clears_fatigued_when_last_turn_steps_le_2(self):
+        game = make_game(phase=TurnPhase.HUNTER_TURN)
+        game.agent.status_effects.add(StatusEffect.FATIGUED)
+        game.agent.last_turn_steps = 2
+        start_agent_turn(game, get_board())
+        assert StatusEffect.FATIGUED not in game.agent.status_effects
+
+    def test_keeps_fatigued_when_last_turn_steps_gt_2(self):
+        game = make_game(phase=TurnPhase.HUNTER_TURN)
+        game.agent.status_effects.add(StatusEffect.FATIGUED)
+        game.agent.last_turn_steps = 3
+        start_agent_turn(game, get_board())
+        assert StatusEffect.FATIGUED in game.agent.status_effects
+
+
+# ---------------------------------------------------------------------------
+# end_agent_turn — smoke dagger cleanup
+# ---------------------------------------------------------------------------
+
+class TestEndAgentTurnSmokeDagger:
+    def test_clears_flashbang_from_smoke_dagger_target(self):
+        h = make_hunter("h1", position="P19", in_vehicle=False)
+        h.status_effects.add(StatusEffect.FLASHBANGED)
+        game = make_game(hunters=[h], agent_pos="P20")
+        game.smoke_dagger_targets = ["h1"]
+        board = get_board()
+        end_agent_turn(game, board)
+        assert StatusEffect.FLASHBANGED not in h.status_effects
+
+    def test_clears_smoke_dagger_targets_list(self):
+        h = make_hunter("h1", position="P19", in_vehicle=False)
+        h.status_effects.add(StatusEffect.FLASHBANGED)
+        game = make_game(hunters=[h], agent_pos="P20")
+        game.smoke_dagger_targets = ["h1"]
+        board = get_board()
+        end_agent_turn(game, board)
+        assert game.smoke_dagger_targets == []
+
+    def test_does_not_clear_flashbang_from_non_target(self):
+        h1 = make_hunter("h1", position="P19", in_vehicle=False)
+        h2 = make_hunter("h2", position="P18", in_vehicle=False)
+        h1.status_effects.add(StatusEffect.FLASHBANGED)
+        h2.status_effects.add(StatusEffect.FLASHBANGED)
+        game = make_game(hunters=[h1, h2], agent_pos="P20")
+        game.smoke_dagger_targets = ["h1"]  # only h1 was smoke-daggered
+        board = get_board()
+        end_agent_turn(game, board)
+        assert StatusEffect.FLASHBANGED not in h1.status_effects
+        assert StatusEffect.FLASHBANGED in h2.status_effects
