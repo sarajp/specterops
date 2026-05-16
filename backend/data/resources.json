@@ -1,162 +1,162 @@
-{
+﻿{
     "resources": {
         "agents": {
             "blue_jay": {
                 "name": "Blue Jay",
-                "move_speed": 4,
                 "abilities": [
                     {
                         "name": "Frequency Hack",
+                        "active": false,
                         "description": "Blue Jay may complete mission objectives that are up to 2 spaces away."
                     }
                 ]
             },
             "cobra": {
                 "name": "Cobra",
-                "move_speed": 4,
                 "abilities": [
                     {
                         "name": "Ambush",
+                        "active": false,
                         "description": "When a hunter ends its move on Cobra, stun that hunter; it cannot attack. When a hunter ends its move orthogonally adjacent to Cobra, you may roll a die. On a result of 4+, stun that hunter; it cannot attack."
                     }
                 ]
             },
             "fox": {
                 "name": "Fox",
-                "move_speed": 5,
                 "abilities": [
                     {
                         "name": "Dash",
+                        "active": true,
                         "description": "Fox may move up to 5 spaces on her turn. When you use Dash, Fox becomes fatigued."
                     }
                 ]
             },
             "mantis": {
                 "name": "Mantis",
-                "move_speed": 4,
                 "abilities": [
                     {
                         "name": "Blade Strike",
+                        "active": false,
                         "description": "When you place a last seen marker adjacent to a hunter, roll a die. On a result of 3+, Mantis stuns that hunter. Mantis may only stun 1 hunter each turn in this way."
                     }
                 ]
             },
             "orangutan": {
                 "name": "Orangutan",
-                "move_speed": 4,
                 "abilities": [
                     {
                         "name": "Toughness",
+                        "active": false,
                         "description": "Orangutan starts the game with 2 additional HP."
                     }
                 ]
             },
             "panther": {
                 "name": "Panther",
-                "move_speed": 4,
                 "abilities": [
                     {
                         "name": "Shadow Step",
+                        "active": true,
                         "description": "When placing your last seen marker, if the Panther moved 3 or fewer spaces, you may place it in a space adjacent to where it would normally be placed."
                     }
                 ]
             },
             "raven": {
                 "name": "Raven",
-                "move_speed": 4,
                 "abilities": [
                     {
                         "name": "Omen",
+                        "active": true,
                         "description": "At the start of your turn, you may choose 1 of the hunters' abilities. The chosen ability is disabled until the start of your next turn. When you use Omen, Raven becomes fatigued."
                     }
                 ]
             },
             "spider": {
                 "name": "Spider",
-                "move_speed": 4,
                 "abilities": [
                     {
                         "name": "Evasion",
+                        "active": false,
                         "description": "Hunters get -2 to their attack rolls when they are within 3 spaces of Spider."
                     }
                 ]
             },
             "traitor_beast": {
                 "name": "Traitor Beast",
-                "move_speed": 5,
                 "abilities": [
                     {
                         "name": "Brutal Assault",
+                        "active": true,
                         "description": "Traitor Beast may land on a hunter's space (but can't move through it). When he does, stun all hunters in that space. When you use Brutal Assault, Traitor Beast becomes fatigued."
                     }
                 ]
             },
             "traitor_gun": {
                 "name": "Traitor Gun",
-                "move_speed": 4,
                 "abilities": [
                     {
                         "name": "Quick Draw",
+                        "active": false,
                         "description": "The first time the Traitor Gun is seen by a hunter each turn, she gets to attack that hunter with Quick Draw. On a hit result, stun that hunter."
                     }
                 ]
             },
             "traitor_heat": {
                 "name": "Traitor Heat",
-                "move_speed": 4,
                 "abilities": [
                     {
                         "name": "Pulse Cannon",
+                        "active": true,
                         "description": "At the start of your turn, if you share a row or column with a hunter, you may reveal your location to attack that hunter with your Pulse Cannon. On a hit result, stun that hunter."
                     }
                 ]
             },
             "traitor_judge": {
                 "name": "Traitor Judge",
-                "move_speed": 4,
                 "abilities": [
                     {
                         "name": "Verdict",
+                        "active": true,
                         "description": "Once per round, when a player rolls a die for a hunter that is within 4 spaces of Traitor Judge, you may have that player reroll that die. The second roll result must be kept."
                     }
                 ]
             },
             "traitor_prophet": {
                 "name": "Traitor Prophet",
-                "move_speed": 4,
                 "abilities": [
                     {
                         "name": "Mind Delve",
+                        "active": true,
                         "description": "At the start of your turn, choose a hunter within 3 spaces of Traitor Prophet and choose a direction (N, S, E, or W). The chosen hunter has no vision in the chosen direction."
                     }
                 ]
             },
             "traitor_puppet": {
                 "name": "Traitor Puppet",
-                "move_speed": 4,
                 "abilities": [
                     {
                         "name": "Control Override",
+                        "active": true,
                         "description": "At the start of the turn, if the vehicle is within 4 spaces of Traitor Puppet, you may move the vehicle up to 4 spaces."
                     }
                 ]
             },
             "traitor_tracker": {
                 "name": "Traitor Tracker",
-                "move_speed": 4,
                 "abilities": [
                     {
                         "name": "Loyal to the End",
+                        "active": false,
                         "description": "Rover moves as an agent. Rover has 2 HP. If an agent loses HP and is adjacent to Rover, Rover loses the HP instead."
                     }
                 ]
             },
             "traitor_watcher": {
                 "name": "Traitor Watcher",
-                "move_speed": 4,
                 "abilities": [
                     {
                         "name": "Booby Traps",
+                        "active": true,
                         "description": "You can no longer place camera tokens. At the start of your turn, you can detonate a camera already in play. Treat the camera token as though a Flash Bang was placed there. (See the Flash Bang equipment card.)"
                     }
                 ]
@@ -291,7 +291,6 @@
         "hunters": {
             "beast": {
                 "name": "Beast",
-                "move_speed": 5,
                 "abilities": [
                     {
                         "name": "Enhanced Senses",
@@ -305,14 +304,13 @@
                     },
                     {
                         "name": "Quadripedal Move",
-                        "active": false,
+                        "active": true,
                         "description": "The Beast may move 5 spaces on a turn, but can only attack agents he shares a space with during that turn."
                     }
                 ]
             },
             "gun": {
                 "name": "Gun",
-                "move_speed": 4,
                 "abilities": [
                     {
                         "name": "Sharp Shooting",
@@ -333,7 +331,6 @@
             },
             "prophet": {
                 "name": "Prophet",
-                "move_speed": 4,
                 "abilities": [
                     {
                         "name": "Mind-Reading",
@@ -354,7 +351,6 @@
             },
             "puppet": {
                 "name": "Puppet",
-                "move_speed": 4,
                 "abilities": [
                     {
                         "name": "Control Relay",
@@ -370,7 +366,6 @@
             },
             "watcher": {
                 "name": "Watcher",
-                "move_speed": 4,
                 "abilities": [
                     {
                         "name": "Surveillance",
@@ -386,7 +381,6 @@
             },
             "heat": {
                 "name": "Heat",
-                "move_speed": 4,
                 "abilities": [
                     {
                         "name": "Thermal Vision",
@@ -402,7 +396,6 @@
             },
             "judge": {
                 "name": "Judge",
-                "move_speed": 4,
                 "abilities": [
                     {
                         "name": "Clairvoyance",
@@ -418,7 +411,6 @@
             },
             "tracker": {
                 "name": "Tracker",
-                "move_speed": 4,
                 "abilities": [
                     {
                         "name": "Rover",

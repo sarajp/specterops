@@ -9,11 +9,20 @@
 - Basic test suite generation ✓
 - FastAPI + WebSocket layer ✓
 - React frontend board display ✓
-- Game logic fixes-- if i try to play the game like i would in meatspace, what still needs support?
-- Hunter/agent abilities (deferred stubs in engine)
-- Agent item usage
-- db.py — SQLite event logging (log_event, fetch_game_log)
-- Integration tests via Playwright (see 2b)
+
+Most blocking for actual play:
+- **Agent item usage** — items show in UI and Use Item button exists, but no `use_item` WebSocket message, handler, or `apply_item` logic exists anywhere; needs all three plus enabling the button
+- **Hunter/agent abilities** — ability cards and Use Ability button are stubbed; passive/triggered abilities (Enhanced Senses, Thermal Vision, etc.) need real logic
+- **Win condition feedback** — `game_over` currently drops into the error banner; needs a proper end screen
+
+Correctness gaps:
+- **Escape point flow** — escape is checked server-side but there is no UI confirmation or feedback when the agent wins by reaching an escape point
+- **`start_agent_turn` is dead code** — `end_round()` now handles agent turn init; the ActionBar button and WS handler can be removed to avoid confusion
+- **Board calibration** — only Shadow of Babel offsets are confirmed; Broken Covenant and Arctic Archives use the same placeholder values
+
+Infrastructure:
+- **db.py** — SQLite event logging (log_event, fetch_game_log); listed as MVP but not yet implemented
+- **Integration tests** via Playwright (see 2b) — full game flow once WebSocket backend is stable
 
 ## 2a. Deferred UI
 - **Legal-move highlighting** — Board.tsx currently allows clicking any cell; adjacency to path tip is enforced in `buildPath` but passable/impassable and hunter-blocked cells are not filtered. Return to this to compute valid next-step cells server-side (or replicate board passability on the client) and visually distinguish/disable non-legal cells.
