@@ -63,6 +63,7 @@ Assumptions:
 from backend.board import BoardData, has_los
 from backend.engine import check_win, check_timeout, publish_pending_objectives
 from backend.state import (
+    ActiveEffect,
     GameState,
     HunterState,
     StatusEffect,
@@ -97,6 +98,9 @@ def start_agent_turn(game: GameState, board: BoardData) -> WinCondition:
     game.agent.status_effects.discard(StatusEffect.FLASHBANGED)
     game.active_obstacles.clear()
     game.agent.path_this_turn = []
+    game.agent.item_used_this_turn = False
+    game.agent.move_speed = 4
+    game.agent.movement_boosted_by_item = False
 
     game.phase = TurnPhase.AGENT_TURN
     return WinCondition.NONE
@@ -118,6 +122,10 @@ def end_agent_turn(game: GameState, board: BoardData) -> WinCondition:
         raise ValueError(
             f"end_agent_turn called in wrong phase: {game.phase}"
         )
+
+    agent = game.agent
+    agent.last_turn_steps = len(agent.path_this_turn) - 1 if agent.path_this_turn else 0
+    agent.position_history.append(agent.position)
 
     _evaluate_escape(game)
     result = check_win(game)
@@ -252,6 +260,7 @@ def start_hunter_turn(game: GameState) -> None:
     hunter.status_effects.discard(StatusEffect.FLASHBANGED)
     hunter.path_this_turn = []
     hunter.moved_this_turn = False
+    hunter.abilities_used_this_turn = []
 
 
 def end_hunter_turn(game: GameState, board: BoardData) -> WinCondition:
@@ -347,9 +356,35 @@ def end_round(game: GameState) -> WinCondition:
     game.agent.status_effects.discard(StatusEffect.FLASHBANGED)
     game.active_obstacles.clear()
     game.agent.path_this_turn = []
+    game.agent.item_used_this_turn = False
+    game.agent.move_speed = 4
+    game.agent.movement_boosted_by_item = False
 
     game.phase = TurnPhase.AGENT_TURN
     return WinCondition.NONE
+
+
+# ---------------------------------------------------------------------------
+# Persistent effects
+# ---------------------------------------------------------------------------
+
+def tick_persistent_effects(game: GameState) -> None:
+    """
+    Advance persistent effects at the end of a player's turn.
+
+    Effects with expires="end_of_agent_turn" are cleared by start_agent_turn
+    via active_obstacles.clear() and the move_speed/item resets there;
+    they do not need to be stored in active_effects.
+
+    This function handles countdown effects added in later phases (smoke tokens,
+    stealth fields, etc.). For now it is a no-op skeleton.
+    """
+    surviving: list[ActiveEffect] = []
+    for effect in game.active_effects:
+        if effect.expires == "permanent":
+            surviving.append(effect)
+        # Additional expiry logic added per phase as effects are implemented
+    game.active_effects = surviving
 
 
 # ---------------------------------------------------------------------------

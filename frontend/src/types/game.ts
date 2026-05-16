@@ -40,6 +40,8 @@ export interface AgentStateView {
   path_this_turn: string[];
   status_effects: StatusEffect[];
   items: ItemState[];
+  abilities: AbilityState[];
+  item_used_this_turn: boolean;
 }
 
 // Hunters' view of the agent (redacted)
@@ -64,6 +66,7 @@ export interface HunterStateView {
   path_this_turn: string[];
   status_effects: StatusEffect[];
   abilities: AbilityState[];
+  abilities_used_this_turn: string[];
 }
 
 export interface VehicleStateView {

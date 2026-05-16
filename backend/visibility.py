@@ -80,6 +80,8 @@ def get_agent_view(game: GameState) -> dict:
                 }
                 for item in game.agent.items
             ],
+            "abilities": game.agent.abilities,
+            "item_used_this_turn": game.agent.item_used_this_turn,
         },
         "hunters": [_hunter_dict(h) for h in game.hunters],
         "vehicle": _vehicle_dict(game),
@@ -149,6 +151,7 @@ def _hunter_dict(h: HunterState) -> dict:
         "path_this_turn": h.path_this_turn,
         "status_effects": [e.name for e in h.status_effects],
         "abilities": h.abilities,
+        "abilities_used_this_turn": h.abilities_used_this_turn,
     }
 
 

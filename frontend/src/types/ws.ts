@@ -32,12 +32,26 @@ export interface CombatResultMessage {
   distance: number;
 }
 
+export interface ItemUsedMessage {
+  type: 'item_used';
+  item_key: string | null;  // null when hidden from this client
+  result: Record<string, unknown>;
+}
+
+export interface AbilityResultMessage {
+  type: 'ability_result';
+  ability: string;
+  [key: string]: unknown;  // result fields vary by ability
+}
+
 export type InboundMessage =
   | LobbyMessage
   | StateMessage
   | ErrorMessage
   | GameOverMessage
-  | CombatResultMessage;
+  | CombatResultMessage
+  | ItemUsedMessage
+  | AbilityResultMessage;
 
 // ---------------------------------------------------------------------------
 // Outbound (client → server)
@@ -108,6 +122,17 @@ export interface EndHunterTurnMsg {
   type: 'end_hunter_turn';
 }
 
+export interface UseItemMsg {
+  type: 'use_item';
+  item_key: string;
+}
+
+export interface UseAbilityMsg {
+  type: 'use_ability';
+  ability_name: string;
+  direction?: string;  // Clairvoyance: NE | NW | SE | SW
+}
+
 export interface LeaveGameMsg {
   type: 'leave_game';
 }
@@ -127,4 +152,6 @@ export type OutboundMessage =
   | SubmitVehicleMoveMsg
   | ExitVehicleMsg
   | SubmitAttackMsg
-  | EndHunterTurnMsg;
+  | EndHunterTurnMsg
+  | UseItemMsg
+  | UseAbilityMsg;

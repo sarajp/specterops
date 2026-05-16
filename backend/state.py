@@ -44,6 +44,20 @@ class WinCondition(Enum):
 
 
 # ---------------------------------------------------------------------------
+# Active effects
+# ---------------------------------------------------------------------------
+
+@dataclass
+class ActiveEffect:
+    source_type: str   # "item" | "ability"
+    source_key: str    # item key or ability name
+    owner_id: str      # player_name of who activated it
+    effect_type: str   # "STUN" | "FLASHBANG" | "FATIGUE" | "SMOKE_TOKEN" | etc.
+    params: dict       # effect-specific data (target cell, affected players, etc.)
+    expires: str       # "end_of_agent_turn" | "start_of_agent_turn" | "permanent"
+
+
+# ---------------------------------------------------------------------------
 # Item state
 # ---------------------------------------------------------------------------
 
@@ -65,8 +79,9 @@ class AgentState:
     position: str           # current cell, e.g. "N1"
     health: int             # 4 (2–3p / 5p) or 6 (4p)
     max_health: int
-    move_speed: int         # from resources.json; always 4 for all current characters
+    move_speed: int         # base 4; modified this turn by Dash, Adrenal Surge, Med Kit
     items: list[ItemState]  # filtered by character availability at setup
+    abilities: list[dict]   # from resources.json agents section
 
     # Visibility / identity
     identity_revealed: bool = False  # True after first confirmed hunter sighting
@@ -78,12 +93,19 @@ class AgentState:
 
     # Movement tracking
     path_this_turn: list[str] = field(default_factory=list)  # includes backtracks
+    position_history: list[str] = field(default_factory=list)  # end-of-turn positions, oldest first
+    last_turn_steps: int = 0  # steps taken last agent turn; used by Motion Sensor
 
     # Last-seen token: cell where agent was last seen, or None
     last_seen_cell: Optional[str] = None
 
     # Status effects
     status_effects: set[StatusEffect] = field(default_factory=set)
+
+    # Item/ability turn tracking
+    item_used_this_turn: bool = False
+    movement_boosted_by_item: bool = False  # True when Adrenal Surge used; exempts Fox Dash
+    remote_trigger_active: bool = False     # delays next objective publication by one turn
 
     # Traitor stub (deferred per claude.md)
     is_traitor: bool = False
@@ -117,6 +139,7 @@ class HunterState:
     status_effects: set[StatusEffect] = field(default_factory=set)
 
     abilities: list[dict] = field(default_factory=list)
+    abilities_used_this_turn: list[str] = field(default_factory=list)
 
 
 # ---------------------------------------------------------------------------
@@ -177,6 +200,9 @@ class GameState:
 
     # Active barriers (Arctic Archives only; mutable during play)
     active_barriers: list[str] = field(default_factory=list)
+
+    # Persistent effects from items/abilities (smoke tokens, stealth fields, etc.)
+    active_effects: list[ActiveEffect] = field(default_factory=list)
 
     # Hunter turn-order negotiation: player_name → proposed order
     # Cleared once consensus is reached or on each new HUNTER_NEGOTIATE phase

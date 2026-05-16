@@ -10,7 +10,7 @@ import PlayerPanel from './components/PlayerPanel';
 import AgentItems from './components/AgentItems';
 import HunterAbilities from './components/HunterAbilities';
 import DiceRoll from './components/DiceRoll';
-import type { CombatResultMessage } from './types/ws';
+import type { AbilityResultMessage, CombatResultMessage } from './types/ws';
 import styles from './styles/App.module.css';
 
 export default function App() {
@@ -24,6 +24,7 @@ export default function App() {
   const [error, setError] = useState<string | null>(null);
   const [pendingPath, setPendingPath] = useState<string[]>([]);
   const [combatResult, setCombatResult] = useState<CombatResultMessage | null>(null);
+  const [abilityResult, setAbilityResult] = useState<AbilityResultMessage | null>(null);
 
   const send = useCallback((msg: OutboundMessage) => {
     wsRef.current?.send(JSON.stringify(msg));
@@ -63,6 +64,8 @@ export default function App() {
         setError(`Game over: ${msg.result}`);
       } else if (msg.type === 'combat_result') {
         setCombatResult(msg);
+      } else if (msg.type === 'ability_result') {
+        setAbilityResult(msg);
       }
     };
 
@@ -127,6 +130,13 @@ export default function App() {
           {error}
         </div>
       )}
+      {abilityResult && (
+        <div className={styles.error} onClick={() => setAbilityResult(null)}>
+          {abilityResult.ability}: {JSON.stringify(Object.fromEntries(
+            Object.entries(abilityResult).filter(([k]) => k !== 'type' && k !== 'ability')
+          ))}
+        </div>
+      )}
 
       {!gameView ? (
         <Lobby
@@ -160,12 +170,12 @@ export default function App() {
             />
             {gameView.role === 'agent' && (
               <div className={styles.itemsFooter}>
-                <AgentItems view={gameView} />
+                <AgentItems view={gameView} send={send} />
               </div>
             )}
             {gameView.role === 'hunter' && (
               <div className={styles.itemsFooter}>
-                <HunterAbilities view={gameView} playerName={playerName} />
+                <HunterAbilities view={gameView} playerName={playerName} send={send} />
               </div>
             )}
           </div>

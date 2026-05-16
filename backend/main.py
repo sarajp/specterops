@@ -51,8 +51,12 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from backend.board import BoardData
 from backend.engine import (
+    apply_ability,
+    apply_item,
     apply_move,
     apply_vehicle_move,
+    can_use_ability,
+    can_use_item,
     enter_vehicle,
     exit_vehicle,
     get_legal_moves,
@@ -643,6 +647,92 @@ async def handle_end_hunter_turn(player_name: str) -> None:
 
 
 # ---------------------------------------------------------------------------
+# Item and ability handlers
+# ---------------------------------------------------------------------------
+
+async def handle_use_item(player_name: str, msg: dict) -> None:
+    if not _require_game(player_name):
+        await send_error(player_name, "No game in progress")
+        return
+    if player_name != agent_player_name:
+        await send_error(player_name, "Only the agent can use items")
+        return
+
+    item_key = msg.get("item_key")
+    if not item_key:
+        await send_error(player_name, "item_key required")
+        return
+
+    ok, reason = can_use_item(game, item_key)
+    if not ok:
+        await send_error(player_name, reason)
+        return
+
+    item_def = _item_defs.get(item_key)
+    if item_def is None:
+        await send_error(player_name, f"Unknown item {item_key!r}")
+        return
+
+    try:
+        result = apply_item(game, item_key, item_def)
+    except ValueError as e:
+        await send_error(player_name, str(e))
+        return
+
+    await broadcast_state()
+
+    revealed = item_def.get("reveal", "False") == "True"
+    event = {"type": "item_used", "item_key": item_key if revealed else None, "result": result if revealed else {}}
+    for pname, ws in list(connections.items()):
+        is_agent = pname == agent_player_name
+        payload = {**event, "item_key": item_key, "result": result} if is_agent else event
+        try:
+            await ws.send_text(json.dumps(payload))
+        except Exception:
+            pass
+
+
+async def handle_use_ability(player_name: str, msg: dict) -> None:
+    if not _require_game(player_name):
+        await send_error(player_name, "No game in progress")
+        return
+
+    active = _active_hunter_name()
+    if player_name != active:
+        await send_error(player_name, f"It is {active}'s turn, not {player_name}'s")
+        return
+
+    hunter = next((h for h in game.hunters if h.player_name == player_name), None)
+    if hunter is None:
+        await send_error(player_name, "Hunter not found")
+        return
+
+    ability_name = msg.get("ability_name")
+    if not ability_name:
+        await send_error(player_name, "ability_name required")
+        return
+
+    ok, reason = can_use_ability(game, hunter, ability_name)
+    if not ok:
+        await send_error(player_name, reason)
+        return
+
+    try:
+        result = apply_ability(game, hunter, ability_name, msg)
+    except ValueError as e:
+        await send_error(player_name, str(e))
+        return
+
+    await broadcast_state()
+    event = {"type": "ability_result", **result}
+    for ws in list(connections.values()):
+        try:
+            await ws.send_text(json.dumps(event))
+        except Exception:
+            pass
+
+
+# ---------------------------------------------------------------------------
 # Broadcast helpers
 # ---------------------------------------------------------------------------
 
@@ -711,6 +801,10 @@ async def dispatch(player_name: str, msg: dict) -> None:
         await handle_submit_attack(player_name)
     elif msg_type == "end_hunter_turn":
         await handle_end_hunter_turn(player_name)
+    elif msg_type == "use_item":
+        await handle_use_item(player_name, msg)
+    elif msg_type == "use_ability":
+        await handle_use_ability(player_name, msg)
     else:
         await send_error(player_name, f"Unknown message type: {msg_type!r}")
 
