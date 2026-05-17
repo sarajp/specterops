@@ -19,6 +19,8 @@ Correctness gaps:
 - **Escape point flow** — escape is checked server-side but there is no UI confirmation or feedback when the agent wins by reaching an escape point
 - **`start_agent_turn` is dead code** — `end_round()` now handles agent turn init; the ActionBar button and WS handler can be removed to avoid confusion
 - **Board calibration** — only Shadow of Babel offsets are confirmed; Broken Covenant and Arctic Archives use the same placeholder values
+- **Traitor** - 5player mechanic 
+- **Rover implementation** = tracker's pet 
 
 Infrastructure:
 - **db.py** — SQLite event logging (log_event, fetch_game_log); listed as MVP but not yet implemented
@@ -30,6 +32,13 @@ Infrastructure:
 ## 2b. Deferred Testing
 - **Board.tsx clickability** — `onCellClick` gating by role/phase is worth testing, but SVG elements aren't accessible by role so tests require `container.querySelector` rather than `screen.getBy*`. Return to this once the board interaction stabilises.
 - **Integration tests** — full game flow (lobby → setup → agent turn → hunter turn → win condition) via Playwright once the WebSocket backend is stable.
+
+## 2c. Commands
+
+Run tests:
+```
+C:\Users\Sara\AppData\Local\Programs\Python\Python312\Scripts\pytest.exe tests/ -x -q
+```
 
 ## 3. Architecture
 Frontend:

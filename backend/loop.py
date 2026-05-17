@@ -60,7 +60,7 @@ Assumptions:
   - Supply cache interactions are deferred.
 """
 
-from backend.board import BoardData, has_los, chebyshev_distance
+from backend.board import BoardData, has_los, chebyshev_distance, sniper_line_cells
 from backend.engine import check_win, check_timeout, publish_pending_objectives
 from backend.state import (
     ActiveEffect,
@@ -106,6 +106,21 @@ def start_agent_turn(game: GameState, board: BoardData) -> WinCondition:
     game.agent.blade_strike_used_this_turn = False
     game.agent.pulse_blades_armed = False
     game.vehicle.emp_disabled = False
+
+    # Phase 8: reset per-turn agent flags
+    game.agent.shadow_step_used_this_turn = False
+    game.agent.velocity_blade_active = False
+
+    # Phase 8: Omen expires at start of agent turn
+    game.omen_disabled_abilities = []
+
+    # Phase 9: promote declared intents → valid for this turn
+    game.valid_objective_intents = list(game.declared_objective_intents)
+    game.declared_objective_intents = []
+
+    # Phase 9: Mind Tap expires at start of agent turn
+    game.mind_tap_active = False
+    game.hunter_declared_paths = {}
 
     # Clear agent FATIGUED if last turn she moved ≤2 spaces (same rule as hunters)
     if game.agent.last_turn_steps <= 2:
@@ -278,6 +293,12 @@ def start_hunter_turn(game: GameState) -> None:
     hunter.moved_this_turn = False
     hunter.abilities_used_this_turn = []
 
+    # Phase 7: reset per-turn hunter ability state
+    hunter.sniper_direction = None
+    hunter.quadripedal_move_used = False
+    hunter.thermal_vision_active = False
+    hunter.move_speed = 4  # restore base speed (Quadripedal Move may have set 5)
+
 
 def end_hunter_turn(game: GameState, board: BoardData) -> WinCondition:
     """
@@ -309,10 +330,19 @@ def end_hunter_turn(game: GameState, board: BoardData) -> WinCondition:
     if hunter is None:
         raise ValueError("No active hunter")
 
-    # LOS check
+    # LOS check (hunter's own vision)
     if is_agent_visible_to(hunter, game, board):
         if not game.agent.identity_revealed:
             game.agent.identity_revealed = True
+
+    # Camera LOS check (Surveillance tokens — all cameras fire each hunter turn)
+    cam_blockers = board.get_blockers(game.active_obstacles)
+    for cam in game.camera_tokens:
+        cam_line = sniper_line_cells(cam["cell"], cam["direction"], cam_blockers)
+        if game.agent.position in cam_line:
+            if not game.agent.identity_revealed:
+                game.agent.identity_revealed = True
+            break
 
     # Clear status effects
     hunter.status_effects.discard(StatusEffect.STUNNED)
@@ -381,6 +411,17 @@ def end_round(game: GameState) -> WinCondition:
     game.agent.pulse_blades_armed = False
     game.vehicle.emp_disabled = False
 
+    # Phase 8
+    game.agent.shadow_step_used_this_turn = False
+    game.agent.velocity_blade_active = False
+    game.omen_disabled_abilities = []
+
+    # Phase 9
+    game.valid_objective_intents = list(game.declared_objective_intents)
+    game.declared_objective_intents = []
+    game.mind_tap_active = False
+    game.hunter_declared_paths = {}
+
     if game.agent.last_turn_steps <= 2:
         game.agent.status_effects.discard(StatusEffect.FATIGUED)
 
@@ -440,6 +481,10 @@ def is_agent_visible_to(
     if game.agent.stealth_field_active:
         if chebyshev_distance(pos, game.agent.position) > 2:
             return False
+
+    # Thermal Vision (Heat passive): walls don't block — only active obstacles do
+    if hunter.thermal_vision_active:
+        return has_los(pos, game.agent.position, frozenset(game.active_obstacles))
 
     blockers = board.get_blockers(game.active_obstacles)
     return has_los(pos, game.agent.position, blockers)

@@ -165,6 +165,57 @@ def build_blocker_set(
 
 
 # ---------------------------------------------------------------------------
+# Directional rays (Sniper Shot, Surveillance cameras, Thermal Vision)
+# ---------------------------------------------------------------------------
+
+_DIRECTION_DELTAS: dict[str, tuple[int, int]] = {
+    "N": (0, -1),
+    "S": (0, 1),
+    "E": (1, 0),
+    "W": (-1, 0),
+}
+
+
+def cells_on_ray(start: str, direction: str) -> list[str]:
+    """All grid cells along a cardinal ray from start (exclusive) to the grid edge."""
+    dc, dr = _DIRECTION_DELTAS[direction]
+    col, row = cell_col(start), cell_row(start)
+    result = []
+    c, r = col + dc, row + dr
+    while True:
+        cell = index_to_cell(c, r)
+        if cell is None:
+            break
+        result.append(cell)
+        c += dc
+        r += dr
+    return result
+
+
+def sniper_line_cells(start: str, direction: str, blockers: frozenset[str]) -> frozenset[str]:
+    """Cells visible along a single cardinal ray: stops before the first blocker."""
+    visible: set[str] = set()
+    for cell in cells_on_ray(start, direction):
+        if cell in blockers:
+            break
+        visible.add(cell)
+    return frozenset(visible)
+
+
+def camera_visible_cells(camera_pos: str, blockers: frozenset[str]) -> frozenset[str]:
+    """Union of N/S/E/W sniper lines from a camera token (full-cross scan)."""
+    visible: set[str] = set()
+    for direction in ("N", "S", "E", "W"):
+        visible |= sniper_line_cells(camera_pos, direction, blockers)
+    return frozenset(visible)
+
+
+def thermal_has_los(a: str, b: str, active_obstacles: list[str]) -> bool:
+    """LOS treating walls as transparent; only active obstacles (smoke etc.) block."""
+    return has_los(a, b, frozenset(active_obstacles))
+
+
+# ---------------------------------------------------------------------------
 # BoardData
 # ---------------------------------------------------------------------------
 

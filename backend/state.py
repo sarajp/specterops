@@ -120,6 +120,10 @@ class AgentState:
     # Traitor stub (deferred per claude.md)
     is_traitor: bool = False
 
+    # Phase 8 ability state
+    shadow_step_used_this_turn: bool = False
+    velocity_blade_active: bool = False         # active: hunters get -3 to attack rolls
+
     @property
     def completed_objectives_count(self) -> int:
         return len(self.public_objectives) + len(self.pending_objectives)
@@ -150,6 +154,11 @@ class HunterState:
 
     abilities: list[dict] = field(default_factory=list)
     abilities_used_this_turn: list[str] = field(default_factory=list)
+
+    # Phase 7 ability state (reset each hunter turn)
+    sniper_direction: Optional[str] = None      # Gun Sniper Shot: chosen line direction
+    quadripedal_move_used: bool = False         # Beast: can only attack from same space this turn
+    thermal_vision_active: bool = False         # Heat: auto-set when moved ≤2 spaces
 
 
 # ---------------------------------------------------------------------------
@@ -224,6 +233,20 @@ class GameState:
 
     # Smoke Dagger: FLASHBANGED hunters to un-flashbang at end of agent turn
     smoke_dagger_targets: list[str] = field(default_factory=list)
+
+    # Phase 7: Surveillance camera tokens — each entry {"cell": str, "direction": str}
+    camera_tokens: list[dict] = field(default_factory=list)
+
+    # Phase 8: Omen-disabled hunter abilities (Raven); cleared at start of agent turn
+    omen_disabled_abilities: list[str] = field(default_factory=list)
+
+    # Phase 9: Pre-Cognition (Prophet) — objective intent tracking across turns
+    declared_objective_intents: list[str] = field(default_factory=list)
+    valid_objective_intents: list[str] = field(default_factory=list)
+
+    # Phase 9: Mind Tap (Raven item)
+    mind_tap_active: bool = False
+    hunter_declared_paths: dict = field(default_factory=dict)
 
     @property
     def is_over(self) -> bool:

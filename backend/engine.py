@@ -45,6 +45,7 @@ from backend.board import (
     cell_col,
     cell_row,
     chebyshev_distance,
+    sniper_line_cells,
 )
 from backend.state import (
     AgentState,
@@ -344,10 +345,16 @@ def apply_move(game: GameState, board: BoardData, path: list[str]) -> list[dict]
         agent.path_this_turn.append(destination)
         _mark_objectives_pending(game)
 
-        # Quick Draw: flag on first step where any Gun hunter has LOS
+        # Quick Draw: flag on first step where any Gun hunter has LOS.
+        # Sniper Shot narrows check to a single directional line.
         if not agent.quick_draw_triggered_this_turn:
             for gh in gun_hunters:
-                if has_los(gh.position, agent.position, blockers):
+                if gh.sniper_direction:
+                    line = sniper_line_cells(gh.position, gh.sniper_direction, blockers)
+                    in_los = agent.position in line
+                else:
+                    in_los = has_los(gh.position, agent.position, blockers)
+                if in_los:
                     agent.quick_draw_triggered_this_turn = True
                     break
 
@@ -427,14 +434,18 @@ def _mark_objectives_pending(game: GameState) -> None:
     Mark objectives adjacent to agent's current position as pending.
     Internal; called per step inside apply_move.
     Frequency Hack (Blue Jay): objectives within 2 spaces complete instead of 1.
+    Pre-Cognition (Prophet): agent must have declared intent last turn for each objective.
     """
     agent = game.agent
     incomplete = [
         obj for obj in game.objectives
         if obj not in agent.public_objectives and obj not in agent.pending_objectives
     ]
+    prophet_in_game = any(h.character == "prophet" for h in game.hunters)
     freq_hack = agent.character == "blue_jay"
     for obj in incomplete:
+        if prophet_in_game and obj not in game.valid_objective_intents:
+            continue
         if freq_hack:
             if chebyshev_distance(agent.position, obj) <= 2:
                 agent.pending_objectives.append(obj)
@@ -495,6 +506,7 @@ def resolve_combat(
     agent: AgentState,
     distance: int,
     forced_roll: Optional[int] = None,
+    roll_modifier: int = 0,
 ) -> tuple[bool, int]:
     """
     Resolve one attack by a hunter against the agent.
@@ -550,6 +562,7 @@ def resolve_combat(
         effective_roll += 2
     if agent.character == "spider" and distance <= 3:
         effective_roll -= 2
+    effective_roll += roll_modifier  # Velocity Blade: -3 when active
 
     hit = effective_roll >= distance
     if hit:
@@ -871,6 +884,10 @@ def apply_item(
         game.agent.stealth_field_active = True
         return {"effect": "stealth_field"}
 
+    if item_key == "mind_tap":
+        game.mind_tap_active = True
+        return {"effect": "mind_tap"}
+
     return {"effect": "used", "item_key": item_key}
 
 
@@ -899,6 +916,8 @@ def can_use_ability(
         return False, "Hunter is fatigued"
     if ability_name in hunter.abilities_used_this_turn:
         return False, "Ability already used this turn"
+    if ability_name in game.omen_disabled_abilities:
+        return False, "Ability is disabled by Omen"
     ability = next((a for a in hunter.abilities if a["name"] == ability_name), None)
     if ability is None:
         return False, f"Hunter does not have ability {ability_name!r}"
@@ -906,6 +925,12 @@ def can_use_ability(
         return False, "Ability is passive"
     if ability_name in _INSTEAD_OF_MOVING and hunter.moved_this_turn:
         return False, "This ability must be used instead of moving"
+    if ability_name == "Sniper Shot" and not hunter.moved_this_turn:
+        return False, "Sniper Shot must be used after moving"
+    if ability_name == "Surveillance" and not hunter.moved_this_turn:
+        return False, "Surveillance must be used after moving"
+    if ability_name == "Quadripedal Move" and hunter.moved_this_turn:
+        return False, "Quadripedal Move must be used before moving"
     return True, ""
 
 
@@ -951,6 +976,33 @@ def apply_ability(
         direction = _motion_direction(game.vehicle.position, game.agent.position)
         return {"ability": "Motion Sensor", "direction": direction}
 
+    if ability_name == "Sniper Shot":
+        direction = params.get("direction", "")
+        if direction not in ("N", "S", "E", "W"):
+            raise ValueError(f"direction must be N, S, E, or W; got {direction!r}")
+        hunter.sniper_direction = direction
+        return {"ability": "Sniper Shot", "direction": direction}
+
+    if ability_name == "Quadripedal Move":
+        hunter.move_speed = 5
+        hunter.quadripedal_move_used = True
+        return {"ability": "Quadripedal Move"}
+
+    if ability_name == "Surveillance":
+        direction = params.get("direction", "")
+        if direction not in ("N", "S", "E", "W"):
+            raise ValueError(f"direction must be N, S, E, or W; got {direction!r}")
+        if len(game.camera_tokens) >= 3:
+            game.camera_tokens.pop(0)  # FIFO: remove oldest
+        game.camera_tokens.append({"cell": hunter.position, "direction": direction})
+        return {"ability": "Surveillance", "cell": hunter.position, "direction": direction}
+
+    if ability_name == "Control Relay":
+        return {"ability": "Control Relay"}
+
+    if ability_name == "Remote Link":
+        return {"ability": "Remote Link"}
+
     raise ValueError(f"No apply logic for ability {ability_name!r}")
 
 
@@ -977,10 +1029,14 @@ def can_use_agent_ability(game: GameState, ability_name: str) -> tuple[bool, str
         if len(game.agent.path_this_turn) > 1:
             return False, "Dash must be used before moving"
 
+    if ability_name == "Omen":
+        if len(game.agent.path_this_turn) > 1:
+            return False, "Omen must be used before moving"
+
     return True, ""
 
 
-def apply_agent_ability(game: GameState, ability_name: str, _params: dict) -> dict:
+def apply_agent_ability(game: GameState, ability_name: str, params: dict) -> dict:
     """
     Execute an agent active ability. Caller must have verified can_use_agent_ability.
     Returns a result dict broadcast to clients.
@@ -991,6 +1047,14 @@ def apply_agent_ability(game: GameState, ability_name: str, _params: dict) -> di
         if not game.agent.movement_boosted_by_item:
             game.agent.status_effects.add(StatusEffect.FATIGUED)
         return {"ability": "Dash", "move_speed": 5}
+
+    if ability_name == "Omen":
+        target = params.get("ability_name")
+        if not target:
+            raise ValueError("Omen requires ability_name parameter (ability to disable)")
+        game.omen_disabled_abilities.append(target)
+        game.agent.status_effects.add(StatusEffect.FATIGUED)
+        return {"ability": "Omen", "disabled": target}
 
     raise ValueError(f"No apply logic for agent ability {ability_name!r}")
 

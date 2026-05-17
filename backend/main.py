@@ -50,7 +50,7 @@ from typing import Optional
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 
-from backend.board import BoardData, chebyshev_distance, orthogonal_adjacent
+from backend.board import BoardData, chebyshev_distance, orthogonal_adjacent, thermal_has_los, adjacent
 from backend.engine import (
     apply_ability,
     apply_agent_ability,
@@ -103,6 +103,10 @@ agent_player_name: Optional[str] = None      # connection key of the agent; set 
 available_items: list[dict] = []             # item options sent to agent during SETUP phase
 max_equipment: int = 0                       # how many items the agent may pick
 _item_defs: dict = {}                        # raw item data from resources.json
+
+# Interrupt state for async prompts
+pending_shadow_step_origin: Optional[str] = None   # Panther Shadow Step: normal placement cell
+pending_velocity_blade_attacker: Optional[str] = None  # Cobra Velocity Blade: pending attacker name
 
 
 # ---------------------------------------------------------------------------
@@ -418,6 +422,23 @@ async def handle_submit_path(player_name: str, msg: dict) -> None:
     except (KeyError, ValueError) as e:
         await send_error(player_name, str(e))
         return
+
+    # Shadow Step (Panther): if last-seen placed and agent moved ≤3 spaces, offer redirect
+    if (game.agent.character == "panther"
+            and not game.agent.shadow_step_used_this_turn
+            and game.agent.last_seen_cell is not None):
+        steps = len(game.agent.path_this_turn) - 1
+        if steps <= 3:
+            global pending_shadow_step_origin
+            pending_shadow_step_origin = game.agent.last_seen_cell
+            game.agent.last_seen_cell = None  # held until agent responds
+            await broadcast_state()
+            await send_to(player_name, {
+                "type": "shadow_step_prompt",
+                "normal_cell": pending_shadow_step_origin,
+            })
+            return  # wait for shadow_step_response
+
     await broadcast_state()
 
     # Broadcast passive trigger events
@@ -448,7 +469,11 @@ async def handle_submit_path(player_name: str, msg: dict) -> None:
         if gun_hunter:
             ref_cell = game.agent.last_seen_cell or game.agent.position
             dist = chebyshev_distance(gun_hunter.position, ref_cell)
-            roll = random.randint(1, 6)
+            # Sniper Shot: roll 2 dice (take higher); otherwise 1 die
+            if gun_hunter.sniper_direction:
+                roll = max(random.randint(1, 6), random.randint(1, 6))
+            else:
+                roll = random.randint(1, 6)
             hit = roll >= dist
             if hit:
                 game.agent.health -= 1
@@ -460,6 +485,7 @@ async def handle_submit_path(player_name: str, msg: dict) -> None:
                 "roll": roll,
                 "distance": dist,
                 "hit": hit,
+                "sniper_shot": gun_hunter.sniper_direction is not None,
             }
             for ws in list(connections.values()):
                 try:
@@ -558,8 +584,19 @@ async def handle_submit_hunter_move(player_name: str, msg: dict) -> None:
                 f"Path must start at hunter position {hunter.position!r}, got {path[0]!r}"
             )
 
+        # Mind Tap enforcement: hunter must move along their declared path
+        if game.mind_tap_active and player_name in game.hunter_declared_paths:
+            declared = game.hunter_declared_paths[player_name]
+            if path != declared:
+                raise ValueError("Mind Tap: must move along declared path")
+
         steps = len(path) - 1
         effective_speed = 2 if StatusEffect.STUNNED in hunter.status_effects else hunter.move_speed
+
+        # Full Speed (Watcher passive): all steps on road → allow up to 5 spaces
+        if hunter.character == "watcher" and StatusEffect.STUNNED not in hunter.status_effects:
+            if all(c in board.roads for c in path):
+                effective_speed = max(effective_speed, 5)
 
         if steps > effective_speed:
             raise ValueError(
@@ -577,6 +614,10 @@ async def handle_submit_hunter_move(player_name: str, msg: dict) -> None:
         hunter.position = path[-1]
         hunter.path_this_turn = path
         hunter.moved_this_turn = True
+
+        # Thermal Vision (Heat passive): auto-activate when moved ≤2 spaces
+        if hunter.character == "heat":
+            hunter.thermal_vision_active = steps <= 2
 
         # Auto-enter vehicle if path ends on the vehicle cell
         if path[-1] == game.vehicle.position:
@@ -641,15 +682,34 @@ async def handle_submit_vehicle_move(player_name: str, msg: dict) -> None:
     if hunter is None:
         await send_error(player_name, "Hunter not found")
         return
-    if not hunter.in_vehicle:
-        await send_error(player_name, "Hunter is not in the vehicle")
-        return
-    if hunter.moved_this_turn:
-        await send_error(player_name, "Already moved this turn")
-        return
-    if game.vehicle.emp_disabled:
-        await send_error(player_name, "Vehicle is EMP disabled")
-        return
+    puppet_remote = msg.get("remote", False)
+    if puppet_remote:
+        # Control Relay: Puppet moves vehicle without being in it
+        if hunter.character != "puppet":
+            await send_error(player_name, "Only Puppet can use Control Relay remotely")
+            return
+        if "Control Relay" not in [a["name"] for a in hunter.abilities]:
+            await send_error(player_name, "Puppet does not have Control Relay")
+            return
+        if "Control Relay" in hunter.abilities_used_this_turn:
+            await send_error(player_name, "Control Relay already used this turn")
+            return
+        if hunter.moved_this_turn:
+            await send_error(player_name, "Already moved this turn")
+            return
+        if game.vehicle.emp_disabled:
+            await send_error(player_name, "Vehicle is EMP disabled")
+            return
+    else:
+        if not hunter.in_vehicle:
+            await send_error(player_name, "Hunter is not in the vehicle")
+            return
+        if hunter.moved_this_turn:
+            await send_error(player_name, "Already moved this turn")
+            return
+        if game.vehicle.emp_disabled:
+            await send_error(player_name, "Vehicle is EMP disabled")
+            return
 
     try:
         path = msg["path"]
@@ -673,6 +733,8 @@ async def handle_submit_vehicle_move(player_name: str, msg: dict) -> None:
 
         apply_vehicle_move(game, path)
         hunter.moved_this_turn = True
+        if puppet_remote:
+            hunter.abilities_used_this_turn.append("Control Relay")
 
     except (KeyError, ValueError) as e:
         await send_error(player_name, str(e))
@@ -728,13 +790,42 @@ async def handle_submit_attack(player_name: str) -> None:
         await send_error(player_name, "Must submit a move before attacking")
         return
 
-    if not is_agent_visible_to(hunter, game, board):
+    # Pulse Cannon (Heat passive): ignores structures — only obstacles block
+    if hunter.character == "heat":
+        if not thermal_has_los(hunter.position, game.agent.position, game.active_obstacles):
+            await send_error(player_name, "Agent is not visible")
+            return
+    elif not is_agent_visible_to(hunter, game, board):
         await send_error(player_name, "Agent is not visible")
         return
 
+    # Quadripedal Move (Beast): can only attack from same space this turn
+    if hunter.character == "beast" and hunter.quadripedal_move_used:
+        if chebyshev_distance(hunter.position, game.agent.position) != 0:
+            await send_error(player_name, "Quadripedal Move: can only attack from the same space")
+            return
+
+    # Velocity Blade interrupt (Cobra): offer agent a chance to activate before resolving
+    if (game.agent.character == "cobra"
+            and not game.agent.velocity_blade_active):
+        vb_item = next(
+            (i for i in game.agent.items
+             if i.key == "velocity_blade" and i.charges > 0 and not i.tapped),
+            None,
+        )
+        if vb_item is not None:
+            global pending_velocity_blade_attacker
+            pending_velocity_blade_attacker = player_name
+            await send_to(agent_player_name, {
+                "type": "velocity_blade_prompt",
+                "attacker": player_name,
+            })
+            return  # wait for velocity_blade_response
+
+    roll_modifier = -3 if game.agent.velocity_blade_active else 0
     try:
         distance = chebyshev_distance(hunter.position, game.agent.position)
-        hit, roll = resolve_combat(hunter, game.agent, distance)
+        hit, roll = resolve_combat(hunter, game.agent, distance, roll_modifier=roll_modifier)
     except ValueError as e:
         await send_error(player_name, str(e))
         return
@@ -884,6 +975,120 @@ async def handle_use_ability(player_name: str, msg: dict) -> None:
 
 
 # ---------------------------------------------------------------------------
+# Interrupt response handlers
+# ---------------------------------------------------------------------------
+
+async def handle_shadow_step_response(player_name: str, msg: dict) -> None:
+    """Agent responds to Shadow Step prompt: choose an adjacent cell or skip."""
+    global pending_shadow_step_origin
+    if pending_shadow_step_origin is None:
+        await send_error(player_name, "No pending Shadow Step prompt")
+        return
+    if player_name != agent_player_name:
+        await send_error(player_name, "Only the agent can respond to Shadow Step")
+        return
+
+    cell = msg.get("cell")
+    if cell is None or cell == "skip":
+        game.agent.last_seen_cell = pending_shadow_step_origin
+    else:
+        if not adjacent(cell, pending_shadow_step_origin):
+            await send_error(player_name, "Shadow Step cell must be adjacent to normal placement")
+            return
+        if not board.is_passable(cell):
+            await send_error(player_name, "Shadow Step cell must be passable")
+            return
+        game.agent.last_seen_cell = cell
+        game.agent.shadow_step_used_this_turn = True
+
+    pending_shadow_step_origin = None
+    await broadcast_state()
+
+
+async def handle_velocity_blade_response(player_name: str, msg: dict) -> None:
+    """Agent responds to Velocity Blade prompt before a hunter attack is resolved."""
+    global pending_velocity_blade_attacker
+    if pending_velocity_blade_attacker is None:
+        await send_error(player_name, "No pending Velocity Blade prompt")
+        return
+    if player_name != agent_player_name:
+        await send_error(player_name, "Only the agent can respond to Velocity Blade")
+        return
+
+    attacker_name = pending_velocity_blade_attacker
+    pending_velocity_blade_attacker = None
+
+    hunter = next((h for h in game.hunters if h.player_name == attacker_name), None)
+    if hunter is None:
+        await send_error(player_name, "Attacker not found")
+        return
+
+    if msg.get("accept", False):
+        vb_item = next(
+            (i for i in game.agent.items if i.key == "velocity_blade" and i.charges > 0 and not i.tapped),
+            None,
+        )
+        if vb_item is not None:
+            vb_item.charges -= 1
+            game.agent.velocity_blade_active = True
+
+    roll_modifier = -3 if game.agent.velocity_blade_active else 0
+    try:
+        distance = chebyshev_distance(hunter.position, game.agent.position)
+        hit, roll = resolve_combat(hunter, game.agent, distance, roll_modifier=roll_modifier)
+    except ValueError as e:
+        await send_error(player_name, str(e))
+        return
+
+    await broadcast_state()
+    await _broadcast_combat_result(attacker_name, hit, roll, distance)
+    result = end_hunter_turn(game, board)
+    await broadcast_state()
+    if result != WinCondition.NONE:
+        await _broadcast_game_over(result)
+
+
+async def handle_declare_objective_intent(player_name: str, msg: dict) -> None:
+    """Agent declares which objectives they intend to flip next turn (Prophet gate)."""
+    if not _require_game(player_name):
+        await send_error(player_name, "No game in progress")
+        return
+    if player_name != agent_player_name:
+        await send_error(player_name, "Only the agent can declare objective intent")
+        return
+    if game.phase != TurnPhase.AGENT_TURN:
+        await send_error(player_name, "Can only declare intent during agent turn")
+        return
+    objectives = msg.get("objectives", [])
+    for cell in objectives:
+        if cell not in game.objectives:
+            await send_error(player_name, f"Not a valid objective cell: {cell!r}")
+            return
+    game.declared_objective_intents = list(objectives)
+    await send_to(player_name, {"type": "objective_intent_declared", "objectives": objectives})
+
+
+async def handle_declare_next_path(player_name: str, msg: dict) -> None:
+    """Hunter declares their path for next turn (Mind Tap enforcement)."""
+    if not _require_game(player_name):
+        await send_error(player_name, "No game in progress")
+        return
+    if not game.mind_tap_active:
+        await send_error(player_name, "Mind Tap is not active")
+        return
+    if player_name == agent_player_name:
+        await send_error(player_name, "Only hunters declare paths for Mind Tap")
+        return
+    hunter = next((h for h in game.hunters if h.player_name == player_name), None)
+    if hunter is None:
+        await send_error(player_name, "Not a hunter in this game")
+        return
+    path = msg.get("path", [])
+    game.hunter_declared_paths[player_name] = path
+    await send_to(player_name, {"type": "path_declared"})
+
+
+# ---------------------------------------------------------------------------
 # Broadcast helpers
 # ---------------------------------------------------------------------------
 
@@ -956,6 +1161,14 @@ async def dispatch(player_name: str, msg: dict) -> None:
         await handle_use_item(player_name, msg)
     elif msg_type == "use_ability":
         await handle_use_ability(player_name, msg)
+    elif msg_type == "shadow_step_response":
+        await handle_shadow_step_response(player_name, msg)
+    elif msg_type == "velocity_blade_response":
+        await handle_velocity_blade_response(player_name, msg)
+    elif msg_type == "declare_objective_intent":
+        await handle_declare_objective_intent(player_name, msg)
+    elif msg_type == "declare_next_path":
+        await handle_declare_next_path(player_name, msg)
     else:
         await send_error(player_name, f"Unknown message type: {msg_type!r}")
 
